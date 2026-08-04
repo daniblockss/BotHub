@@ -1,0 +1,116 @@
+================================================================================
+                    BOTHUB - ARQUITETURA E GUIA DE IMPLEMENTAÇÃO
+                     FASE 2: PAINEL WEB DASHBOARD, VIP & MONETIZAÇÃO PIX
+================================================================================
+
+[VISÃO GERAL DO PAINEL WEB]
+Desenvolvimento de um Painel de Controle Web (Dashboard) moderno, futurista e responsivo
+para gerenciamento completo do bot Breezinho, com autenticação via Discord OAuth2,
+multi-tenant (gestão individual por Servidor/Guilda), gerenciamento de memórias,
+regras e filtros, além de um ecossistema completo de monetização com VIPs e pagamentos via Pix.
+
+--------------------------------------------------------------------------------
+1. ARQUITETURA E STACK TECNOLÓGICA (FULL-STACK & UI FUTURISTA)
+--------------------------------------------------------------------------------
+[ ] 1.1 Stack de Desenvolvimento Recomendada
+    - Frontend: Next.js (React) ou Vite + React com Tailwind CSS + Framer Motion (para animações futuristas com efeito Neon/Glow).
+    - Backend API: Node.js (Fastify/Express) ou Python (FastAPI) integrado com `discord.py` e Firebase Admin SDK.
+    - Autenticação: OAuth2 do Discord (NextAuth.js ou Custom Discord OAuth2 Session JWT).
+    - Banco de Dados: Firebase Realtime Database / Firestore (centralizado com o cluster de bots).
+
+[ ] 1.2 Design System Futurista e Moderno (Visual Turístico e Cyberpunk)
+    - Paleta de Cores: Dark Mode profundo (#0b0f19, #111827), Acentos em Azul Elétrico (#3b82f6), Ciano Neon (#06b6d4) e Roxo Cyber (#8b5cf6).
+    - Componentes Visuais: Cards com Glassmorphism (efeito vidro fosco `backdrop-blur`), bordas com iluminação neon, gráficos interativos e transições suaves.
+    - Interface Responsiva: Totalmente otimizada para Desktop, Tablets e Dispositivos Móveis.
+
+--------------------------------------------------------------------------------
+2. SISTEMA DE AUTENTICAÇÃO E GESTÃO DE SERVIDORES (DISCORD OAUTH2)
+--------------------------------------------------------------------------------
+[ ] 2.1 Login via Discord
+    - Implementar botão "Entrar com Discord".
+    - Solicitar escopos `identify` e `guilds` da API do Discord.
+    - Salvar token de sessão seguro em Cookies HttpOnly com Criptografia JWT.
+
+[ ] 2.2 Seleção e Listagem de Servidores
+    - Filtrar e listar apenas os servidores onde o usuário possui permissão de "Administrador" ou "Gerenciar Servidor".
+    - Indicar o status do bot no servidor:
+      * "Ativo no Servidor" (Permite abrir o painel de edição).
+      * "Convidar Bot" (Redireciona para o link de autorização OAuth2 do Bot).
+    - Exibir estatísticas rápidas na tela inicial: total de membros, contagem de mensagens atendidas, uso de memória do cluster.
+
+--------------------------------------------------------------------------------
+3. MÓDULOS DE CONFIGURAÇÃO INDIVIDUAL POR SERVIDOR
+--------------------------------------------------------------------------------
+[ ] 3.1 Filtros de Conteúdo & Moderação Automática
+    - Interruptor (Toggle On/Off) do "Filtro de Palavrões & Anti-Brainrot".
+    - Editor de Lista de Palavras Proibidas (Adicionar / Remover termos e expressões customizadas por servidor).
+    - Ações do Filtro: Deletar mensagem, enviar aviso automático (ex: "Seu Enzo Brainrotado vai jogar..."), dar advertência ou aplicar timeout temporário.
+    - Ativação/Desativação de canais permitidos (Whitelist de canais onde a IA pode responder).
+
+[ ] 3.2 Gerenciamento de Memória & Personalidade da IA
+    - Editor de Identidade & Personagem (`identidade.txt`): Ajustar tom de voz, humor e regras de comportamento do Breezinho por servidor.
+    - Editor de Regras Gerais (`regras.txt` e `regras-padrao.txt`).
+    - Gerenciador da Memória Geral (`memoria_geral.txt`):
+      * Visualizador de memórias salvas com busca, filtros por data e tags `[SALVAR_LEMBRAR]`.
+      * Opção de excluir, editar ou adicionar manualmente novos fatos da memória direto no painel.
+    - Gerenciador de Anotações Importantes (`importantes.txt`).
+
+[ ] 3.3 Logs de Atividade & Status do Cluster
+    - Painel de monitoramento do bot em tempo real (Servidor líder ativo, latência do Discord, consumo de RAM, status das chaves Groq).
+    - Feed de logs de ações administrativas realizadas via Web Dashboard.
+
+--------------------------------------------------------------------------------
+4. ECOSSISTEMA DE MONETIZAÇÃO, VIPS E PLANOS DE ASSINATURA
+--------------------------------------------------------------------------------
+[ ] 4.1 Estrutura de Planos VIP & Benefícios
+    - Plano Free (Grátis): Limite de memória geral, modelo IA padrão, filtro básico.
+    - Plano VIP Bronze / Silver / Gold (Pago):
+      * Respostas mais rápidas da IA (Acesso prioritário às chaves Groq VIP).
+      * Memória ilimitada e personalizada por servidor.
+      * Cargos e badges exclusivos no Discord.
+      * Permissão para customizar comandos exclusivos e personalidades únicas.
+      * Acesso a modelos de IA mais avançados ou sem limites de mensagens.
+
+[ ] 4.2 Loja Integrada no Painel (Checkout VIP)
+    - Pátio de Benefícios com tabela comparativa de planos.
+    - Seleção de tempo de assinatura (Mensal, Trimestral, Vitalício).
+    - Campo para vincular o ID do Servidor ou usuário que receberá as vantagens VIP.
+
+--------------------------------------------------------------------------------
+5. SISTEMA DE PAGAMENTO EXCLUSIVO PIX (INTEGRAÇÃO NUBANK / GATEWAY PIX)
+--------------------------------------------------------------------------------
+[ ] 5.1 Fluxo de Pagamento Pix Automático
+    - O usuário escolhe o plano VIP no site e clica em "Pagar com Pix".
+    - O backend gera instantaneamente:
+      * QR Code Pix dinâmico para escanear na tela.
+      * Código "Pix Copia e Cola" (EMV payload) com botão de cópia de 1 clique.
+      * Contador regressivo de validade do Pix (ex: 15 minutos).
+
+[ ] 5.2 Integração de API Pix (Nubank / Mercado Pago / Efí / Asaas)
+    - Como o Nubank pessoal não possui API aberta para automação sem parceiros PJ, utiliza-se a API Oficial de cobrança Pix (Mercado Pago, Efí Bank ou Asaas):
+      * O site envia a requisição de cobrança para a API.
+      * Webhook de Notificação Instantânea: Quando o pagamento Pix cai, a API avisa o backend do site imediatamente.
+
+[ ] 5.3 Ativação Automática do VIP (Sem intervenção manual)
+    - Assim que o Webhook confirma o Pix recebido:
+      1. O backend altera o status do usuário/servidor no Firebase para `vip: true`.
+      2. O bot no Discord entrega automaticamente o cargo de VIP e envia mensagem privada (DM) de agradecimento.
+      3. O painel web atualiza em tempo real sem atualizar a página com animação de "Pagamento Confirmado!".
+
+[ ] 5.4 Como Usar (Guia Passo a Passo para o Cliente final)
+    1. Acesse o Painel Web do Breezinho e faça login com sua conta do Discord.
+    2. Selecione o servidor desejado ou clique na aba "Planos VIP".
+    3. Escolha o plano desejado e clique em "Comprar com Pix".
+    4. Abra o app do seu banco (Nubank, Banco do Brasil, Itaú, Inter, etc.).
+    5. Escolha "Ler QR Code" ou "Pix Copia e Cola" e confirme o pagamento.
+    6. Pronto! O VIP é liberado automaticamente no site e no servidor em até 5 segundos.
+
+--------------------------------------------------------------------------------
+6. CHECKLIST DE DESENVOLVIMENTO & PASSOS PRÁTICOS
+--------------------------------------------------------------------------------
+[ ] 6.1 Fase 1 (Frontend Layout & Auth): Criar a interface futurista com Tailwind CSS e integração OAuth2 com Discord.
+[ ] 6.2 Fase 2 (Backend API & Firebase): Criar endpoints para leitura e escrita das configurações de cada guilda diretamente no Firebase.
+[ ] 6.3 Fase 3 (Moderação & Memória): Integrar o formulário do site com o Firebase e fazer o `main.py` sincronizar as alterações na hora.
+[ ] 6.4 Fase 4 (Gateway Pix & Webhook): Configurar conta bancária/API Pix e programar o listener de Webhook.
+[ ] 6.5 Fase 5 (Entrega de VIP): Testar fluxo completo de compra -> aprovação Pix -> cargo no Discord + liberação de recursos no site.
+================================================================================

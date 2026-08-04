@@ -1,0 +1,101 @@
+================================================================================
+                    BOTHUB - GUIA DE IMPLEMENTAÇÃO
+         SISTEMA DISTRIBUÍDO E ALTA DISPONIBILIDADE (CLUSTER / FAILOVER)
+================================================================================
+
+[VISÃO GERAL DO PROJETO]
+Transformar o bot 'Breezinho' em uma arquitetura de Cluster de Alta Disponibilidade
+(Ativo-Passivo com Failover Automático) utilizando Firebase Realtime Database para
+coordenação, heartbeat, eleição de líder e sincronização de dados/memória.
+
+--------------------------------------------------------------------------------
+FASE 1: INFRAESTRUTURA DE CLUSTER & ELEIÇÃO DE LÍDER (HEARTBEAT & FAILOVER)
+--------------------------------------------------------------------------------
+[ ] 1.1 Configuração do Firebase Realtime Database
+    - Garantir que serviceAccountKey.json possui permissões de escrita/leitura.
+    - Estruturar os nós no Firebase:
+      /cluster/servers/{server_id} -> { last_seen, is_leader, ram_usage, status }
+      /cluster/leader -> id_do_servidor_lider
+      /cluster/locks -> travas de sincronização
+
+[ ] 1.2 Registro e Identificação Automática de Nós
+    - Ao iniciar main.py, o script faz ping no Firebase e lê a lista de servidores.
+    - Se não houver ID definido localmente/ambiente, gera um ID sequencial (ex: servidor_1, servidor_2).
+    - Registra as métricas iniciais no banco de dados.
+
+[ ] 1.3 Implementação do Heartbeat (Thread de Segundo Plano)
+    - Criar função assíncrona/thread que envia 'last_seen = time.time()' a cada 5s.
+    - Incluir uso de memória RAM (psutil) e status de saúde do processo.
+
+[ ] 1.4 Algoritmo de Eleição de Líder (Leader Election)
+    - Todos os nós lêem o status do Líder a cada 3-5 segundos.
+    - Se o Líder não atualizar o timestamp por mais de 15 segundos:
+      * O nó reserva com o menor ID (servidor_2, etc.) assume como novo Líder.
+      * O nó promovido altera seu status para 'is_leader = True' e assume a pose.
+      * Inicializa o loop do discord (bot.run / bot.start).
+
+[ ] 1.5 Prevenção de "Bot Zumbi" e Split-Brain
+    - Se o nó Líder perder conexão de rede com o Firebase, ele DEVE desconectar
+      imediatamente do Discord (`await bot.close()`) para não responder duplicado.
+
+--------------------------------------------------------------------------------
+FASE 2: MIGRAGEM DE DADOS LOCAL -> NUVEM (SINCRONIZAÇÃO DE MEMÓRIA)
+--------------------------------------------------------------------------------
+[ ] 2.1 Sincronização da Memória Geral e Importantes
+    - Substituir a leitura/escrita direta em memoria_geral.txt e importantes.txt
+      por chamadas ao Firebase Realtime Database:
+      * /data/memoria_geral
+      * /data/importantes
+    - Manter um cache local sincronizado em tempo real via escuta (listeners) do Firebase.
+
+[ ] 2.2 Sincronização do Histórico de Conversas
+    - Migrar o dicionário `historico_conversa` para o nó:
+      * /chat_history/{channel_id}
+    - Garantir que se o servidor cair no meio da conversa, o próximo servidor saiba
+      o contexto recente sem perder o fio da meada.
+
+[ ] 2.3 Centralização do arquivo config.json
+    - Mover permissões, canais permitidos e lista de criadores para o Firebase:
+      * /config/canais_autorizados
+      * /config/criadores_ids
+    - O comando !mudaridentidade ou !regras atualiza na nuvem e replica para todos.
+
+--------------------------------------------------------------------------------
+FASE 3: ROTATIVIDADE E GERENCIAMENTO DE APIS (GROQ KEY POOLING)
+--------------------------------------------------------------------------------
+[ ] 3.1 Pool de Chaves de API no Firebase
+    - Registrar as chaves Groq em:
+      * /apis/keys/{key_hash} -> { key, status: "ACTIVE"|"COOLDOWN", cooldown_until }
+    - Quando um servidor detectar erro 429 (Rate Limit), atualiza o status no Firebase.
+
+[ ] 3.2 Rotacionamento Inteligente entre Servidores
+    - Todos os servidores usam apenas chaves marcadas como "ACTIVE".
+    - Se a chave 1 estourar limite no Servidor 1, o Servidor 2 saberá instantaneamente
+      e pulará direto para a Chave 2.
+
+--------------------------------------------------------------------------------
+RISCOS, GARGALOS E PONTOS DE ATENÇÃO (ALERTAS)
+--------------------------------------------------------------------------------
+🚨 1. RESPOSTAS DUPLICADAS NO DISCORD
+   - Causa: Dois servidores achando que são o Líder ao mesmo tempo.
+   - Solução: Trava atômica (Transactions) no Firebase para reivindicar a liderança.
+
+🚨 2. LIMITE DE OPERAÇÕES DO FIREBASE (CUSTOS/FREE TIER)
+   - Causa: Escrever histórico a cada letra digitada ou heartbeat a cada 100ms.
+   - Solução: Heartbeat espaçado (5s) e salvar histórico de chat em lotes ou apenas
+     mensagens relevantes.
+
+🚨 3. ARQUIVOS LOCAIS DESINCRONIZADOS
+   - Causa: Alguém edita o memoria_geral.txt na máquina A, mas a máquina B não recebe.
+   - Solução: Proibir edição direta em arquivos TXT no servidor produtivo; usar apenas
+     comandos do Bot (!lembrar) ou painel no Firebase.
+
+--------------------------------------------------------------------------------
+ORDEM SUGERIDA DE EXECUÇÃO
+--------------------------------------------------------------------------------
+1. Escrever a lógica de Cluster/Heartbeat em um módulo separado (`cluster.py`).
+2. Testar rodando duas janelas de terminal simulando Servidor 1 e Servidor 2.
+3. Integrar o `cluster.py` no `main.py` antes da chamada `bot.run()`.
+4. Migrar funções de TXT (`ler_txt`, `salvar_txt`) para Firebase.
+5. Fazer teste de estresse matando o processo do Servidor 1 e medindo o tempo de failover.
+================================================================================

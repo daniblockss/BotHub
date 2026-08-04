@@ -1,0 +1,104 @@
+================================================================================
+                    BOTHUB - ARQUITETURA E GUIA DE IMPLEMENTAÇÃO
+                     FASE 3: ECONOMIA, MOEDAS (BREEZE COINS) & TEMPO/CONSUMO
+================================================================================
+
+[VISÃO GERAL DO SISTEMA ECONÔMICO]
+Estruturação da economia interna do bot Breezinho utilizando "Breeze Coins" (Moedas).
+Como o bot utiliza chamadas de API de IA (Groq) e processamento em servidor, a moeda
+servirá para equilibrar o custo do servidor/API com o engajamento dos usuários,
+permitindo compra via Pix (integrada ao To-Do2) e resgates diários gratuitos.
+
+--------------------------------------------------------------------------------
+1. CONCEITO CENTRAL: COMO FUNCIONAM AS BREEZE COINS?
+--------------------------------------------------------------------------------
+Para não falir seu servidor e manter o bot sustentável, a melhor estratégia é um
+MODELO HÍBRIDO de "Tempo de Operação + Consumo de IA (Mensagens)":
+
+[ ] 1.1 Moedas como "Créditos de Processamento" (IA / Groq)
+    - Cada mensagem que o bot responde via Groq consome 1 Breeze Coin do servidor/usuário.
+    - Por quê? Porque chamadas de LLM (IA) têm limites e custos na API.
+    - Exemplo: 100 Moedas = 100 Respostas completas de IA com memória.
+
+[ ] 1.2 Moedas como "Tempo de Servidor" (Uptime / Aluguel do Bot)
+    - O servidor consome uma taxa diária fixa de Moedas para manter o bot online e respondendo naquele canal específico.
+    - Exemplo: Mantê-lo ativo em 1 canal do Discord custa 10 Moedas/dia.
+    - Se as moedas do servidor acabarem (saldo = 0), o bot entra em "Modo de Repouso" (fica offline no servidor ou responde apenas comandos básicos sem IA).
+
+--------------------------------------------------------------------------------
+2. SISTEMA DE MOEDAS DIÁRIAS (DAILY) & RECOMPENSAS DE ENGAJAMENTO
+--------------------------------------------------------------------------------
+[ ] 2.1 Comando /daily e Painel Web
+    - Todo usuário cadastrado no bot pode resgatar Moedas Grátis a cada 24 horas.
+    - Resgate via Discord: Comando `!daily` ou `/daily`.
+    - Resgate no Painel Web: Bônus extra de +20% em moedas se resgatar pelo site.
+    - Quantidade base recomendada: 15 a 25 Moedas Diárias por usuário.
+
+[ ] 2.2 Recompensas por Streaks (Sequências)
+    - Dia 1: 15 Moedas | Dia 3: 30 Moedas | Dia 7 (Semana Cheia): 100 Moedas + Badge no Discord.
+    - Incentiva os usuários a entrarem todos os dias no site/bot.
+
+[ ] 2.3 Doação de Moedas para o Servidor (Crowdfunding da Comunidade)
+    - Os membros do servidor podem doar suas moedas diárias para o "Cofre do Servidor" (`!doarmoedas 50`).
+    - Assim, a comunidade inteira ajuda a manter o Breezinho ativo e com memória no servidor sem que só o dono precise pagar do próprio bolso.
+
+--------------------------------------------------------------------------------
+3. TABELA DE PREÇOS & PACOTES DE MOEDAS (COMPRA VIA PIX)
+--------------------------------------------------------------------------------
+[ ] 3.1 Pacotes de Entrada e Bônus
+    - 🪙 Pacote Bronze: R$ 5,00  -> 500 Breeze Coins  (Ideal para servidores pequenos)
+    - 🪙 Pacote Prata:  R$ 10,00 -> 1.200 Breeze Coins (+20% Bônus)
+    - 🪙 Pacote Ouro:   R$ 20,00 -> 3.000 Breeze Coins (+50% Bônus)
+    - 🪙 Pacote Mestre: R$ 50,00 -> 10.000 Breeze Coins (Uptime + IA Ilimitada por meses)
+
+[ ] 3.2 Integração com a Loja no Painel Web
+    - Ao comprar o pacote pelo site via Pix, o backend adiciona o saldo no Firebase:
+      `/users/{user_id}/coins` ou `/guilds/{guild_id}/coins`.
+    - Atualização imediata do saldo na tela do usuário.
+
+--------------------------------------------------------------------------------
+4. O QUE AS MOEDAS PODEM COMPRAR E LIBERAR (UTILIDADE)
+--------------------------------------------------------------------------------
+[ ] 4.1 Consumo de Mensagens da IA
+    - Respostas normais da IA: 1 Moeda por resposta.
+    - Modo Raciocínio Avançado / Contexto Longo (Groq): 3 Moedas por resposta.
+
+[ ] 4.2 Extensões de Memória e Recursos
+    - Memória Expansível: Aumentar o limite do `memoria_geral.txt` por +50 slots de memória -> 100 Moedas/mês.
+    - Filtro de Moderador Personalizado: Ativar filtro de palavrões avançado -> 50 Moedas/mês.
+    - Troca de Personalidade/Voz: Trocar a identidade do bot (`identidade.txt`) para modos divertidos (Ex: "Modo Pirata", "Modo Sábio", "Modo Gamer") -> 20 Moedas por alteração.
+
+--------------------------------------------------------------------------------
+5. MECANISMOS DE CONTROLE, SEGURANÇA E TRAVAS DE PROTEÇÃO
+--------------------------------------------------------------------------------
+[ ] 5.1 Limite Diário por Servidor (Proteção contra Esgotamento Rápido)
+    - O dono do servidor pode definir no Painel Web um "Teto Diário de Gastos" (ex: "Gastar no máximo 50 moedas por dia no servidor").
+    - Se a comunidade falar demais e atingir o teto, o bot avisa amigavelmente:
+      *"🌪️ O saldo diário de moedas do servidor acabou! Espere até amanhã ou mande um !daily para doar moedas!"*
+
+[ ] 5.2 Cooldowns Anti-Spam
+    - Intervalo mínimo de 5 segundos entre perguntas da IA para o mesmo usuário.
+    - Impede que usuários mal-intencionados gastem o saldo do servidor digitando mensagens seguidas.
+
+--------------------------------------------------------------------------------
+6. ESTRUTURA NO FIREBASE (BANCO DE DADOS)
+--------------------------------------------------------------------------------
+[ ] 6.1 Nós de Economia
+    - `/economy/users/{user_id}`:
+      * `coins`: número
+      * `last_daily`: timestamp
+      * `streak_days`: número
+    - `/economy/guilds/{guild_id}`:
+      * `vault_coins`: número (cofre do servidor)
+      * `daily_limit`: número
+      * `spent_today`: número
+      * `active_features`: [ "advanced_filter", "extended_memory" ]
+
+--------------------------------------------------------------------------------
+7. CHECKLIST DE DESENVOLVIMENTO
+--------------------------------------------------------------------------------
+[ ] 7.1 Criar comandos no Discord (`!daily`, `/saldo`, `/doar`, `/loja`).
+[ ] 7.2 Integrar a dedução de Moedas na função principal de resposta do `main.py` (antes de chamar o Groq).
+[ ] 7.3 Conectar a compra de pacotes Pix do Painel Web para depositar Moedas no Firebase.
+[ ] 7.4 Criar a trava de saldo zero no bot (interromper respostas de IA se saldo = 0).
+================================================================================
