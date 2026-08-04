@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BotHub Admin</title>
+  <style>
+    body { font-family: Inter, system-ui, sans-serif; margin:0; padding:0; background:#0B1220; color:#E6EDF8; }
+    header { padding:24px; background:#111B33; border-bottom:1px solid rgba(255,255,255,.08); }
+    h1 { margin:0; font-size:1.8rem; }
+    .container { padding:24px; max-width:1100px; margin:0 auto; }
+    .card { background:#111B33; border:1px solid rgba(255,255,255,.08); border-radius:18px; padding:22px; margin-bottom:18px; }
+    .row { display:grid; gap:18px; grid-template-columns:1fr 1fr; }
+    .full { grid-column:1/-1; }
+    button, input, textarea, select { border-radius:12px; border:1px solid rgba(255,255,255,.12); background:#141F3A; color:#E6EDF8; padding:12px 14px; font:inherit; }
+    button { cursor:pointer; background:#4B7CFE; transition:.2s; }
+    button:hover { background:#3562F1; }
+    label { display:block; margin-bottom:8px; font-size:.95rem; color:#A7B1C8; }
+    textarea { min-height:120px; resize:vertical; }
+    .section-title { margin:0 0 12px; font-size:1.1rem; }
+    .status-chip { display:inline-block; padding:6px 10px; border-radius:999px; background:rgba(75,124,254,.14); color:#C7D3FF; font-size:.9rem; }
+    .grid-3 { grid-template-columns:1fr 1fr 1fr; }
+    .small-note { color:#8E9EC6; font-size:.92rem; }
+    pre { background:rgba(255,255,255,.04); padding:12px; border-radius:12px; overflow-x:auto; }
+  </style>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="/config.js"></script>
+</head>
+<body>
+  <header>
+    <h1>BotHub Admin Dashboard</h1>
+    <p class="small-note">Autenticação: Discord OAuth + Firebase Auth. Edite regras, identidade, memória e chaves Groq.</p>
+  </header>
+  <div class="container">
+    <div class="card">
+      <div class="row">
+        <div>
+          <h2 class="section-title">Autenticação</h2>
+          <p><strong>Discord:</strong> <span id="discord-status">não conectado</span></p>
+          <button id="discord-login">Entrar com Discord</button>
+          <button id="discord-logout">Sair do Discord</button>
+        </div>
+        <div>
+          <h2 class="section-title">Firebase Auth</h2>
+          <p><strong>Firebase:</strong> <span id="firebase-status">não conectado</span></p>
+          <label>Email</label>
+          <input id="firebase-email" type="email" placeholder="seu@email.com" />
+          <label>Senha</label>
+          <input id="firebase-password" type="password" placeholder="Senha" />
+          <button id="firebase-signin">Entrar com Firebase</button>
+          <button id="firebase-signout">Sair do Firebase</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 class="section-title">Visão geral</h2>
+      <div class="row">
+        <div>
+          <p><strong>Discord</strong></p>
+          <pre id="discord-info">Aguardando login...</pre>
+        </div>
+        <div>
+          <p><strong>Firebase</strong></p>
+          <pre id="firebase-info">Aguardando login...</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2 class="section-title">Editar dados do Firebase</h2>
+      <div class="row">
+        <div>
+          <label>Identidade do bot</label>
+          <textarea id="identidade"></textarea>
+          <button id="save-identidade">Salvar identidade</button>
+        </div>
+        <div>
+          <label>Regras do bot</label>
+          <textarea id="regras"></textarea>
+          <button id="save-regras">Salvar regras</button>
+        </div>
+      </div>
+      <div class="row" style="margin-top:18px;">
+        <div>
+          <label>Memória geral</label>
+          <textarea id="memoria_geral"></textarea>
+          <button id="save-memoria">Salvar memória geral</button>
+        </div>
+        <div>
+          <label>Importantes</label>
+          <textarea id="importantes"></textarea>
+          <button id="save-importantes">Salvar avisos importantes</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card full">
+      <h2 class="section-title">Chaves Groq</h2>
+      <div class="row grid-3">
+        <div>
+          <label>Nova chave Groq</label>
+          <input id="new-api-key" placeholder="gsk_..." />
+          <button id="add-api-key">Adicionar chave</button>
+        </div>
+        <div>
+          <p class="small-note">A lista carrega as chaves armazenadas no Firebase.</p>
+        </div>
+      </div>
+      <div id="api-keys-list"></div>
+    </div>
+  </div>
+  <script src="app.js"></script>
+</body>
+</html>

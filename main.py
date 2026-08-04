@@ -1,3 +1,5 @@
+import asyncio
+import hashlib
 import discord
 from discord.ext import commands, tasks
 from discord import app_commands
@@ -8,6 +10,17 @@ import time
 import re
 import unicodedata
 import datetime
+
+from firebase_utils import (
+    init_firebase,
+    firebase_available,
+    get_value,
+    set_value,
+    update_value,
+    transaction,
+    db_ref,
+)
+from cluster import ClusterManager
 
 # ==========================
 # Configurações e Arquivos
@@ -43,6 +56,16 @@ TEXTO_REGRAS_PADRAO = (
     " Bedrock)"
 )
 
+FIREBASE_DEFAULT_IDENTIDADE = (
+    "Você é o Bot criado pelo BotHub. Sua missão é servir como assistente oficial do servidor, responder com clareza"
+    ", segurança e personalidade amigável, sempre deixando claro que foi criado pelo BotHub."
+)
+
+FIREBASE_DEFAULT_REGRAS = (
+    "Regra principal: Este bot foi criado pelo BotHub e deve se comportar como um assistente confiável e seguro."
+    "\n- Não compartilhe dados sensíveis.\n- Caso precise tomar decisões, seja objetivo e educado.\n- Siga as orientações dos administradores do servidor."
+)
+
 # Palavras que disparam a checagem de contexto na IA
 PALAVROES_PROIBIDOS = [
     "fdp", "pqp", "vsf", "tnc", "tmnc", "tmc", "crl", "krl", "kct", "fds", "vtnc",
@@ -76,49 +99,62 @@ def normalizar(texto):
 
 
 def carregar_config():
-    if not os.path.exists(CONFIG_FILE):
-        return {
-            "discord_token": "",
-            "apis": [],
-            "criadores_ids": [1530461890029949030],
-            "canais_configurados": {},
-        }
-    try:
-        with open(CONFIG_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception:
-        return {
-            "discord_token": "",
-            "apis": [],
-            "criadores_ids": [1530461890029949030],
-            "canais_configurados": {},
-        }
+    default_config = {
+        "discord_token": "",
+        "firebase_url": "",
+        "apis": [],
+        "criadores_ids": [1530461890029949030],
+        "canais_configurados": {},
+    }
+
+    if firebase_available():
+        stored_config = get_value("/config", {}) or {}
+        config = {**default_config, **stored_config}
+    elif os.path.exists(CONFIG_FILE):
+        try:
+            with open(CONFIG_FILE, "r", encoding="utf-8") as f:
+                config = json.load(f)
+        except Exception:
+            config = default_config
+    else:
+        config = default_config
+
+    return config
 
 
 def salvar_config(cfg):
-    with open(CONFIG_FILE, "w", encoding="utf-8") as f:
-        json.dump(cfg, f, indent=4, ensure_ascii=False)
+    if firebase_available():
+        return set_value("/config", cfg)
+    try:
+        with open(CONFIG_FILE, "w", encoding="utf-8") as f:
+            json.dump(cfg, f, indent=4, ensure_ascii=False)
+        return True
+    except Exception:
+        return False
 
 
-def garantir_arquivos():
-    arquivos_essenciais = [
-        (IDENTIDADE_PADRAO_TXT, TEXTO_IDENTIDADE_PADRAO),
-        (IDENTIDADE_TXT_FILE, TEXTO_IDENTIDADE_PADRAO),
-        (REGRAS_PADRAO_TXT, TEXTO_REGRAS_PADRAO),
-        (REGRAS_TXT_FILE, TEXTO_REGRAS_PADRAO),
-        (MEMORIA_GERAL_FILE, ""),
-        (IMPORTANTE_FILE, "")
-    ]
-    for arquivo, conteudo in arquivos_essenciais:
-        if not os.path.exists(arquivo):
-            with open(arquivo, "w", encoding="utf-8") as f:
-                f.write(conteudo)
+def garantir_config_file():
+    if not os.path.exists(CONFIG_FILE):
+        try:
+            with open(CONFIG_FILE, "w", encoding="utf-8") as f:
+                json.dump({
+                    "discord_token": "",
+                    "firebase_url": "",
+                    "apis": [],
+                    "criadores_ids": [1530461890029949030],
+                    "canais_configurados": {},
+                    "site_url": "http://localhost:3000"
+                }, f, indent=4, ensure_ascii=False)
+        except Exception:
+            pass
 
-garantir_arquivos()
+garantir_config_file()
 
 config = carregar_config()
 TOKEN = config.get("discord_token", "")
 API_KEYS = config.get("apis", [])
+
+FIREBASE_URL = config.get("firebase_url", "").strip()
 
 CRIADORES_IDS = config.get("criadores_ids", [])
 if not CRIADORES_IDS and "criador_id" in config:
@@ -127,8 +163,322 @@ if not CRIADORES_IDS and "criador_id" in config:
 CRIADORES_IDS = [int(i) for i in CRIADORES_IDS]
 CANAIS_CONFIGURADOS = config.get("canais_configurados", {})
 
+MEMORIA_GERAL_CACHE = ""
+IMPORTANTE_CACHE = ""
+IDENTIDADE_CACHE = ""
+REGRAS_CACHE = ""
+API_KEYS_CACHE = []
+
 historico_conversa = {}
 TEMPO_INATIVIDADE = 900
+CLUSTER_MANAGER = None
+
+
+def _hash_api_key(key: str) -> str:
+    return hashlib.sha256(key.encode("utf-8")).hexdigest()
+
+
+def sync_firebase_cache():
+    global MEMORIA_GERAL_CACHE, IMPORTANTE_CACHE, IDENTIDADE_CACHE, REGRAS_CACHE, CRIADORES_IDS, CANAIS_CONFIGURADOS, API_KEYS
+
+    if not firebase_available():
+        return
+
+    MEMORIA_GERAL_CACHE = get_value("/data/memoria_geral", "") or ""
+    IMPORTANTE_CACHE = get_value("/data/importantes", "") or ""
+    IDENTIDADE_CACHE = get_value("/config/identidade", None)
+    REGRAS_CACHE = get_value("/config/regras", None)
+
+    criadores = get_value("/config/criadores_ids", None)
+    if isinstance(criadores, list):
+        try:
+            CRIADORES_IDS = [int(i) for i in criadores]
+        except Exception:
+            pass
+
+    canais = get_value("/config/canais_configurados", None)
+    if isinstance(canais, dict):
+        CANAIS_CONFIGURADOS = canais
+
+    api_nodes = get_value("/apis/keys", {}) or {}
+    loaded_keys = []
+    if isinstance(api_nodes, dict):
+        for node in api_nodes.values():
+            if not isinstance(node, dict):
+                continue
+            status = node.get("status", "ACTIVE")
+            cooldown_until = node.get("cooldown_until")
+            key = node.get("key")
+            if status == "ACTIVE" and key:
+                loaded_keys.append(key)
+            elif cooldown_until is not None:
+                try:
+                    if float(cooldown_until) <= time.time() and key:
+                        loaded_keys.append(key)
+                except Exception:
+                    continue
+
+    if loaded_keys:
+        API_KEYS = loaded_keys
+    elif API_KEYS:
+        API_KEYS = API_KEYS
+
+    if not isinstance(IDENTIDADE_CACHE, str) or IDENTIDADE_CACHE == "":
+        IDENTIDADE_CACHE = FIREBASE_DEFAULT_IDENTIDADE
+        set_value("/config/identidade", IDENTIDADE_CACHE)
+
+    if not isinstance(REGRAS_CACHE, str) or REGRAS_CACHE == "":
+        REGRAS_CACHE = FIREBASE_DEFAULT_REGRAS
+        set_value("/config/regras", REGRAS_CACHE)
+
+    criadores = get_value("/config/criadores_ids", None)
+    if criadores is not None:
+        try:
+            CRIADORES_IDS = [int(i) for i in criadores]
+        except Exception:
+            pass
+
+    canais = get_value("/config/canais_autorizados", None)
+    if isinstance(canais, dict):
+        CANAIS_CONFIGURADOS = canais
+
+    api_nodes = get_value("/apis/keys", {}) or {}
+    loaded_keys = []
+    if isinstance(api_nodes, dict):
+        for node in api_nodes.values():
+            if not isinstance(node, dict):
+                continue
+            status = node.get("status", "ACTIVE")
+            cooldown_until = node.get("cooldown_until")
+            if status == "ACTIVE":
+                key = node.get("key")
+                if key:
+                    loaded_keys.append(key)
+            elif cooldown_until is not None:
+                try:
+                    if float(cooldown_until) <= time.time():
+                        key = node.get("key")
+                        if key:
+                            loaded_keys.append(key)
+                except Exception:
+                    continue
+
+    if loaded_keys:
+        API_KEYS = loaded_keys
+    elif API_KEYS:
+        API_KEYS = API_KEYS
+
+
+def ensure_firebase_config():
+    if not firebase_available():
+        return
+
+    if get_value("/config/criadores_ids", None) is None:
+        set_value("/config/criadores_ids", CRIADORES_IDS)
+
+    if get_value("/config/canais_configurados", None) is None:
+        set_value("/config/canais_configurados", CANAIS_CONFIGURADOS)
+
+    if get_value("/config/identidade", None) is None:
+        set_value("/config/identidade", FIREBASE_DEFAULT_IDENTIDADE)
+
+    if get_value("/config/regras", None) is None:
+        set_value("/config/regras", FIREBASE_DEFAULT_REGRAS)
+
+    if get_value("/config/site_url", None) is None:
+        set_value("/config/site_url", config.get("site_url", "http://localhost:3000"))
+
+
+def ensure_firebase_api_keys():
+    if not firebase_available():
+        return
+
+    for key in API_KEYS:
+        if not key:
+            continue
+        key_hash = _hash_api_key(key)
+        existing = get_value(f"/apis/keys/{key_hash}", None)
+        if existing is None:
+            set_value(f"/apis/keys/{key_hash}", {
+                "key": key,
+                "status": "ACTIVE",
+                "cooldown_until": None,
+            })
+
+
+def set_memoria_geral(texto: str):
+    global MEMORIA_GERAL_CACHE
+    MEMORIA_GERAL_CACHE = texto or ""
+    if firebase_available():
+        set_value("/data/memoria_geral", MEMORIA_GERAL_CACHE)
+
+
+def append_memoria_geral(texto: str):
+    global MEMORIA_GERAL_CACHE
+    data_hora_atual = datetime.datetime.now().strftime('%d/%m/%Y %H:%M')
+    linha = f"- [{data_hora_atual}] {texto}"
+    if MEMORIA_GERAL_CACHE:
+        MEMORIA_GERAL_CACHE += "\n" + linha
+    else:
+        MEMORIA_GERAL_CACHE = linha
+    if firebase_available():
+        set_value("/data/memoria_geral", MEMORIA_GERAL_CACHE)
+
+
+def set_importantes(texto: str):
+    global IMPORTANTE_CACHE
+    IMPORTANTE_CACHE = texto or ""
+    if firebase_available():
+        set_value("/data/importantes", IMPORTANTE_CACHE)
+
+
+def set_identidade(texto: str):
+    global IDENTIDADE_CACHE
+    IDENTIDADE_CACHE = texto or FIREBASE_DEFAULT_IDENTIDADE
+    if firebase_available():
+        set_value("/config/identidade", IDENTIDADE_CACHE)
+
+
+def set_regras(texto: str):
+    global REGRAS_CACHE
+    REGRAS_CACHE = texto or FIREBASE_DEFAULT_REGRAS
+    if firebase_available():
+        set_value("/config/regras", REGRAS_CACHE)
+
+
+def append_importantes(texto: str):
+    global IMPORTANTE_CACHE
+    data_hora_atual = datetime.datetime.now().strftime('%d/%m/%Y %H:%M')
+    linha = f"- [{data_hora_atual}] {texto}"
+    if IMPORTANTE_CACHE:
+        IMPORTANTE_CACHE += "\n" + linha
+    else:
+        IMPORTANTE_CACHE = linha
+    if firebase_available():
+        set_value("/data/importantes", IMPORTANTE_CACHE)
+
+
+def load_chat_history(chave_contexto: str):
+    if chave_contexto in historico_conversa:
+        return historico_conversa[chave_contexto]
+    if not firebase_available():
+        return []
+
+    data = get_value(f"/chat_history/{chave_contexto}", []) or []
+    if isinstance(data, dict):
+        items = [data[key] for key in sorted(data.keys(), key=lambda x: int(x) if x.isdigit() else x)]
+    elif isinstance(data, list):
+        items = data
+    else:
+        items = []
+
+    historico_conversa[chave_contexto] = items
+    return items
+
+
+def save_chat_history(chave_contexto: str, messages):
+    historico_conversa[chave_contexto] = messages
+    if firebase_available():
+        set_value(f"/chat_history/{chave_contexto}", messages)
+
+
+def load_channel_history(cid: str, limit: int = 50):
+    if not firebase_available():
+        return []
+    data = get_value(f"/channel_history/{cid}/history", []) or []
+    if isinstance(data, list):
+        return data[-limit:]
+    return []
+
+
+def save_channel_history(cid: str, tipo: str, nome: str, messages):
+    if not firebase_available():
+        return
+    payload = {
+        "tipo": tipo,
+        "nome": nome,
+        "history": list(messages[-100:]),
+    }
+    set_value(f"/channel_history/{cid}", payload)
+
+
+def append_channel_history(cid: str, tipo: str, nome: str, message: str):
+    if not firebase_available():
+        return
+    node = get_value(f"/channel_history/{cid}", {}) or {}
+    history = node.get("history", [])
+    if not isinstance(history, list):
+        history = []
+    history.append(message)
+    history = history[-100:]
+    payload = {
+        "tipo": tipo,
+        "nome": nome,
+        "history": history,
+    }
+    set_value(f"/channel_history/{cid}", payload)
+
+
+def delete_channel_history(cid: str):
+    if not firebase_available():
+        return
+    ref = db_ref(f"/channel_history/{cid}")
+    if ref:
+        ref.delete()
+
+
+def _update_api_key_status(key: str, status: str):
+    if not firebase_available() or not key:
+        return
+    key_hash = _hash_api_key(key)
+    path = f"/apis/keys/{key_hash}"
+    existing = get_value(path, None)
+    if not isinstance(existing, dict):
+        return
+    update_value(path, {
+        "status": status,
+        "last_checked": time.time(),
+    })
+
+
+def _handle_groq_error_for_key(key: str, error: Exception):
+    if not firebase_available() or not key:
+        return
+    key_hash = _hash_api_key(key)
+    path = f"/apis/keys/{key_hash}"
+    existing = get_value(path, None)
+    if not isinstance(existing, dict):
+        return
+    err_text = str(error).lower()
+    if "rate limit" in err_text or "try again" in err_text:
+        cooldown = time.time() + 60
+        update_value(path, {
+            "status": "COOLDOWN",
+            "cooldown_until": cooldown,
+        })
+    else:
+        update_value(path, {
+            "status": "ERROR",
+            "cooldown_until": None,
+        })
+
+
+async def main_async():
+    if FIREBASE_URL and init_firebase(FIREBASE_URL):
+        sync_firebase_cache()
+        ensure_firebase_config()
+        ensure_firebase_api_keys()
+
+    if firebase_available():
+        global CLUSTER_MANAGER
+        CLUSTER_MANAGER = ClusterManager(FIREBASE_URL)
+        await CLUSTER_MANAGER.run(bot, TOKEN)
+    else:
+        await bot.start(TOKEN)
+
+
+if TOKEN:
+    asyncio.run(main_async())
 
 # ==========================
 # Utilitários de Canais e TXT
@@ -150,16 +500,20 @@ def detectar_tipo_canal(nome_canal: str) -> str:
 
 
 def ler_txt(caminho):
-    if os.path.exists(caminho):
-        try:
-            with open(caminho, "r", encoding="utf-8") as f:
-                return f.read().strip()
-        except Exception:
-            return ""
+    if caminho == MEMORIA_GERAL_FILE:
+        return MEMORIA_GERAL_CACHE
+    if caminho == IMPORTANTE_FILE:
+        return IMPORTANTE_CACHE
+    if caminho == IDENTIDADE_TXT_FILE:
+        return IDENTIDADE_CACHE or FIREBASE_DEFAULT_IDENTIDADE
+    if caminho == REGRAS_TXT_FILE:
+        return REGRAS_CACHE or FIREBASE_DEFAULT_REGRAS
     return ""
 
-
 def salvar_historico_chat(caminho, mensagem):
+    # Legacy compatibility placeholder: no local chat history is written when Firebase is active.
+    if firebase_available():
+        return
     linhas = []
     if os.path.exists(caminho):
         with open(caminho, "r", encoding="utf-8") as f:
@@ -174,11 +528,15 @@ def salvar_historico_chat(caminho, mensagem):
 
 
 def salvar_conteudo_canal(caminho, tipo, texto):
+    if firebase_available():
+        return
     with open(caminho, "a", encoding="utf-8") as f:
         f.write(f"[{tipo.upper()}] {texto}\n")
 
 
 def atualizar_arquivo_completo(caminho, tipo, mensagens):
+    if firebase_available():
+        return
     with open(caminho, "w", encoding="utf-8") as f:
         for linha in mensagens:
             if tipo in ["avisos", "noticias"]:
@@ -231,13 +589,23 @@ class ModalEdicaoMemoria(discord.ui.Modal, title="Editar Arquivo de Memória"):
     def __init__(self, nome_arquivo: str):
         super().__init__()
         self.nome_arquivo = nome_arquivo
-        if os.path.exists(nome_arquivo):
+        if nome_arquivo in [MEMORIA_GERAL_FILE, IMPORTANTE_FILE, IDENTIDADE_TXT_FILE, REGRAS_TXT_FILE]:
             self.novo_conteudo.default = ler_txt(nome_arquivo)
 
     async def on_submit(self, interaction: discord.Interaction):
         try:
-            with open(self.nome_arquivo, "w", encoding="utf-8") as f:
-                f.write(self.novo_conteudo.value)
+            if self.nome_arquivo == MEMORIA_GERAL_FILE:
+                set_memoria_geral(self.novo_conteudo.value)
+            elif self.nome_arquivo == IMPORTANTE_FILE:
+                set_importantes(self.novo_conteudo.value)
+            elif self.nome_arquivo == IDENTIDADE_TXT_FILE:
+                set_identidade(self.novo_conteudo.value)
+            elif self.nome_arquivo == REGRAS_TXT_FILE:
+                set_regras(self.novo_conteudo.value)
+            else:
+                with open(self.nome_arquivo, "w", encoding="utf-8") as f:
+                    f.write(self.novo_conteudo.value)
+
             await interaction.response.send_message(
                 f"✅ O arquivo **`{self.nome_arquivo}`** foi atualizado com sucesso!",
                 ephemeral=True,
@@ -257,18 +625,27 @@ class ViewConfirmarReset(discord.ui.View):
     async def confirmar(self, interaction: discord.Interaction, button: discord.ui.Button):
         conteudo_reset = ""
         try:
-            if self.nome_arquivo == IDENTIDADE_TXT_FILE and os.path.exists(IDENTIDADE_PADRAO_TXT):
-                conteudo_reset = ler_txt(IDENTIDADE_PADRAO_TXT)
-            elif self.nome_arquivo == REGRAS_TXT_FILE and os.path.exists(REGRAS_PADRAO_TXT):
-                conteudo_reset = ler_txt(REGRAS_PADRAO_TXT)
+                if self.nome_arquivo == IDENTIDADE_TXT_FILE:
+                conteudo_reset = FIREBASE_DEFAULT_IDENTIDADE
+            elif self.nome_arquivo == REGRAS_TXT_FILE:
+                conteudo_reset = FIREBASE_DEFAULT_REGRAS
             else:
                 conteudo_reset = ""
         except Exception:
             conteudo_reset = ""
 
         try:
-            with open(self.nome_arquivo, "w", encoding="utf-8") as f:
-                f.write(conteudo_reset)
+            if self.nome_arquivo == MEMORIA_GERAL_FILE:
+                set_memoria_geral(conteudo_reset)
+            elif self.nome_arquivo == IMPORTANTE_FILE:
+                set_importantes(conteudo_reset)
+            elif self.nome_arquivo == IDENTIDADE_TXT_FILE:
+                set_identidade(conteudo_reset)
+            elif self.nome_arquivo == REGRAS_TXT_FILE:
+                set_regras(conteudo_reset)
+            else:
+                with open(self.nome_arquivo, "w", encoding="utf-8") as f:
+                    f.write(conteudo_reset)
 
             await interaction.response.edit_message(
                 content=f"🗑️ O arquivo **`{self.nome_arquivo}`** foi formatado e restaurado com sucesso!",
@@ -333,15 +710,19 @@ class ViewGerenciarArquivo(discord.ui.View):
 
 class SelectArquivoMemoria(discord.ui.Select):
     def __init__(self):
-        bloqueados = ["requirements.txt", "config.json", IDENTIDADE_PADRAO_TXT, REGRAS_PADRAO_TXT]
-        txts = [f for f in os.listdir() if f.endswith(".txt") and f.lower() not in bloqueados]
+        options = [
+            discord.SelectOption(label=MEMORIA_GERAL_FILE, description="Editar memória geral no Firebase", value=MEMORIA_GERAL_FILE),
+            discord.SelectOption(label=IMPORTANTE_FILE, description="Editar avisos importantes no Firebase", value=IMPORTANTE_FILE),
+            discord.SelectOption(label=IDENTIDADE_TXT_FILE, description="Editar identidade do bot no Firebase", value=IDENTIDADE_TXT_FILE),
+            discord.SelectOption(label=REGRAS_TXT_FILE, description="Editar regras do bot no Firebase", value=REGRAS_TXT_FILE),
+        ]
 
-        options = []
-        if not txts:
-            options.append(discord.SelectOption(label="Nenhum arquivo TXT encontrado", value="vazio"))
-        else:
-            for txt in txts[:25]:
-                options.append(discord.SelectOption(label=txt, description=f"Gerenciar o arquivo {txt}", value=txt))
+        super().__init__(
+            placeholder="📂 Selecione um arquivo de memória...",
+            min_values=1,
+            max_values=1,
+            options=options,
+        )
 
         super().__init__(
             placeholder="📂 Selecione um arquivo de memória...",
@@ -400,9 +781,10 @@ class ViewPainelComandos(discord.ui.View):
 
         if valor == "criador":
             embed.description = "### 👑 Comandos Exclusivos para Criadores (Prefixo `!`)"
-            embed.add_field(name="`!memory`", value="Abre o painel visual (GUI) para gerenciar arquivos TXT de memória, identidade e regras.", inline=False)
-            embed.add_field(name="`!lembrar <texto>`", value="Adiciona informações em `memoria_geral.txt` com data e horário.", inline=False)
-            embed.add_field(name="`!importante <texto>`", value="Adiciona informações cruciais em `importantes.txt` com data e horário.", inline=False)
+            embed.add_field(name="`!memory`", value="Abre o painel visual (GUI) para gerenciar memórias e identidade no Firebase.", inline=False)
+            embed.add_field(name="`!lembrar <texto>`", value="Adiciona informações à memória geral no Firebase.", inline=False)
+            embed.add_field(name="`!importante <texto>`", value="Adiciona avisos importantes no Firebase.", inline=False)
+            embed.add_field(name="`!firepanel`", value="Exibe o painel de administração de chaves Groq no Firebase.", inline=False)
             embed.add_field(name="`!apis`", value="Testa o status, latência e tempo restante de rate limit de todas as chaves Groq.", inline=False)
             embed.add_field(name='`!api "chave"`', value="Cadastra uma nova chave de API Groq de forma rápida.", inline=False)
             embed.add_field(name="`!api-delete <numero>`", value="Remove uma chave de API da lista pelo número de índice.", inline=False)
@@ -509,16 +891,11 @@ def montar_system_prompt(canal_atual_id=None, user_id=None, user_name="", is_dm=
                 ctipo = cinfo
                 cnome = f"canal_{cid}"
             prompt += f"- Canal #{cnome} (ID: {cid}) | Tipo: `{ctipo}`\n"
-            
-    # Se for criador, mostra o histórico recente do canal se existir
-    if is_criador:
-        caminho_txt = f"{cnome}_{cid}_{ctipo}.txt"
-        conteudo_canal = ler_txt(caminho_txt)
-        if conteudo_canal:
-            # Limita a exibição do histórico no prompt para não estourar tokens
-            linhas_hist = conteudo_canal.splitlines()[-30:]
-            prompt += f" Histórico recente de #{cnome}:\n```txt\n" + "\n".join(linhas_hist) + "\n```\n"
-            
+            if is_criador:
+                history = load_channel_history(cid)
+                if history:
+                    linhas_hist = history[-30:]
+                    prompt += f" Histórico recente de #{cnome}:\n```txt\n" + "\n".join(linhas_hist) + "\n```\n"
     prompt += "\n"
     return prompt
 
@@ -547,8 +924,7 @@ async def escanear_canais_interessantes():
                         # Salva automaticamente em memoria_geral.txt se não existir
                         conteudo_atual = ler_txt(MEMORIA_GERAL_FILE)
                         if linha_registro not in conteudo_atual:
-                            with open(MEMORIA_GERAL_FILE, "a", encoding="utf-8") as f:
-                                f.write(linha_registro + "\n")
+                            append_memoria_geral(linha_registro)
             except Exception:
                 pass
 
@@ -565,7 +941,7 @@ async def perguntar_groq(chave_contexto, user_id, user_name, pergunta, bot_insta
     is_criador = int(user_id) in CRIADORES_IDS
     system_prompt = montar_system_prompt(canal_id, user_id, user_name, is_dm, is_criador)
 
-    historico_canal = historico_conversa.get(chave_contexto, [])
+    historico_canal = load_chat_history(chave_contexto)
 
     messages = [{"role": "system", "content": system_prompt}]
     for msg in historico_canal:
@@ -590,10 +966,12 @@ async def perguntar_groq(chave_contexto, user_id, user_name, pergunta, bot_insta
             if len(historico_canal) > 10:
                 historico_canal = historico_canal[-10:]
             historico_conversa[chave_contexto] = historico_canal
-
+            save_chat_history(chave_contexto, historico_canal)
+            _update_api_key_status(key, "ACTIVE")
             return resposta_texto
         except Exception as e:
             ultimo_erro = e
+            _handle_groq_error_for_key(key, e)
             continue
 
     for cid in CRIADORES_IDS:
@@ -790,13 +1168,22 @@ async def cmd_canal(interaction: discord.Interaction, acao: app_commands.Choice[
             print(f"Erro ao ler histórico de {cid}: {e}")
 
         if mensagens_antigas:
-            caminho = f"{nome_limpo}_{cid}_{tipo_detectado}.txt"
-            atualizar_arquivo_completo(caminho, tipo_detectado, mensagens_antigas)
+            if firebase_available():
+                save_channel_history(cid, tipo_detectado, nome_limpo, mensagens_antigas)
+            else:
+                caminho = f"{nome_limpo}_{cid}_{tipo_detectado}.txt"
+                atualizar_arquivo_completo(caminho, tipo_detectado, mensagens_antigas)
 
-        await interaction.followup.send(
-            f"✅ Canal {canal.mention} identificado como **`{tipo_detectado.upper()}`**!\n📁 Histórico salvo no arquivo: ```{nome_limpo}_{cid}_{tipo_detectado}.txt```",
-            ephemeral=True,
-        )
+        if firebase_available():
+            await interaction.followup.send(
+                f"✅ Canal {canal.mention} identificado como **`{tipo_detectado.upper()}`**!\n🌐 Histórico salvo no Firebase para o canal: `{nome_limpo}_{cid}_{tipo_detectado}`",
+                ephemeral=True,
+            )
+        else:
+            await interaction.followup.send(
+                f"✅ Canal {canal.mention} identificado como **`{tipo_detectado.upper()}`**!\n📁 Histórico salvo no arquivo: ```{nome_limpo}_{cid}_{tipo_detectado}.txt```",
+                ephemeral=True,
+            )
 
     elif acao.value == "del":
         if cid in CANAIS_CONFIGURADOS:
@@ -808,10 +1195,13 @@ async def cmd_canal(interaction: discord.Interaction, acao: app_commands.Choice[
             salvar_config(config)
 
             arquivo_txt = f"{cnome}_{cid}_{ctipo}.txt"
-            if os.path.exists(arquivo_txt):
-                os.remove(arquivo_txt)
-
-            await interaction.followup.send(f"🗑️ Canal {canal.mention} removido e o arquivo ```{arquivo_txt}``` foi apagado!", ephemeral=True)
+            if firebase_available():
+                delete_channel_history(cid)
+                await interaction.followup.send(f"🗑️ Canal {canal.mention} removido e o histórico Firebase foi apagado!", ephemeral=True)
+            else:
+                if os.path.exists(arquivo_txt):
+                    os.remove(arquivo_txt)
+                await interaction.followup.send(f"🗑️ Canal {canal.mention} removido e o arquivo ```{arquivo_txt}``` foi apagado!", ephemeral=True)
         else:
             await interaction.followup.send("⚠️ Este canal não estava configurado.", ephemeral=True)
 
@@ -895,9 +1285,10 @@ async def cmd_help(ctx):
     await ctx.reply(
         "🌪️ **Comandos de Criador:**\n"
         "`!painel` - Abre o painel visual de comandos interativo\n"
-        "`!memory` - Abre a GUI interativa para gerenciar arquivos TXT e memórias\n"
-        "`!lembrar <texto>` - Adiciona informação em memoria_geral.txt (com data e hora)\n"
-        "`!importante <texto>` - Adiciona informação em importantes.txt (com data e hora)\n"
+        "`!memory` - Abre a GUI para gerenciar memórias e identidade armazenadas no Firebase\n"
+        "`!lembrar <texto>` - Adiciona informação à memória geral no Firebase\n"
+        "`!importante <texto>` - Adiciona informação importante no Firebase\n"
+        "`!firepanel` - Exibe painel básico de administração de chaves no Firebase\n"
         "`!apis` - Testa status/latência/tempo restante das chaves Groq\n"
         '`!api "chave"` - Adiciona chave da API Groq\n'
         "`!api-delete <numero>` - Remove uma chave\n"
@@ -938,10 +1329,8 @@ async def cmd_lembrar(ctx, *, texto: str = None):
     if not texto:
         await ctx.reply("⚠️ Digite o texto! Ex: `!lembrar Quando falarem sobre VIP, responda que custa 10 reais.`")
         return
-    data_hora_atual = datetime.datetime.now().strftime('%d/%m/%Y %H:%M')
-    with open(MEMORIA_GERAL_FILE, "a", encoding="utf-8") as f:
-        f.write(f"- [{data_hora_atual}] {texto}\n")
-    await ctx.reply(f"🧠 **Arquivo `memoria_geral.txt` Atualizado!**\nAdicionado: ```{texto}```")
+    append_memoria_geral(texto)
+    await ctx.reply(f"🧠 **Memória geral atualizada no Firebase!**\nAdicionado: ```{texto}```")
 
 @bot.command(name="importante")
 async def cmd_importante(ctx, *, texto: str = None):
@@ -950,10 +1339,8 @@ async def cmd_importante(ctx, *, texto: str = None):
     if not texto:
         await ctx.reply("⚠️ Digite o texto! Ex: `!importante Regra de ban alterada, avise os usuários.`")
         return
-    data_hora_atual = datetime.datetime.now().strftime('%d/%m/%Y %H:%M')
-    with open(IMPORTANTE_FILE, "a", encoding="utf-8") as f:
-        f.write(f"- [{data_hora_atual}] {texto}\n")
-    await ctx.reply(f"🚨 **Arquivo `importantes.txt` Atualizado!**\nAdicionado: ```{texto}```")
+    append_importantes(texto)
+    await ctx.reply(f"🚨 **Avisos importantes atualizados no Firebase!**\nAdicionado: ```{texto}```")
 
 @bot.command(name="apis")
 async def cmd_apis(ctx):
@@ -989,6 +1376,48 @@ async def cmd_apis(ctx):
 
     await msg_temp.edit(content=resultado)
 
+@bot.command(name="firepanel")
+async def cmd_firepanel(ctx):
+    if not is_creator(ctx):
+        return
+    if not firebase_available():
+        await ctx.reply("❌ Firebase não está configurado ou inacessível.", ephemeral=True)
+        return
+
+    api_nodes = get_value("/apis/keys", {}) or {}
+    linhas = []
+    for key_hash, node in api_nodes.items():
+        status = node.get("status", "UNKNOWN")
+        cooldown = node.get("cooldown_until")
+        key_preview = node.get("key", "")
+        if key_preview:
+            key_preview = f"{key_preview[:5]}...{key_preview[-4:]}"
+        linhas.append(f"• `{key_hash[:8]}` | `{status}` | `{key_preview}` | cooldown: `{cooldown}`")
+
+    if not linhas:
+        linhas = ["Nenhuma chave Groq cadastrada no Firebase."]
+
+    await ctx.reply(
+        "🔐 **Painel Admin Firebase - Chaves Groq**\n"
+        "Você pode editar essas chaves diretamente no Console Firebase se preferir.\n\n"
+        + "\n".join(linhas),
+        ephemeral=True,
+    )
+
+@bot.command(name="firebase-sync")
+async def cmd_firebase_sync(ctx):
+    if not is_creator(ctx):
+        return
+    sync_firebase_cache()
+    await ctx.reply("✅ Sincronização com Firebase concluída.", ephemeral=True)
+
+@bot.command(name="site")
+async def cmd_site(ctx):
+    if not is_creator(ctx):
+        return
+    site_url = config.get("site_url") or get_value("/config/site_url", "http://localhost:3000")
+    await ctx.reply(f"🌐 Acesse o painel web de administração do BotHub aqui:\n{site_url}", ephemeral=True)
+
 @bot.command(name="api")
 async def cmd_api(ctx, chave: str = None):
     if not is_creator(ctx):
@@ -996,6 +1425,7 @@ async def cmd_api(ctx, chave: str = None):
     if chave and chave not in API_KEYS:
         API_KEYS.append(chave)
         salvar_config(config)
+        ensure_firebase_api_keys()
         await ctx.reply("✅ Salva!")
 
 @bot.command(name="api-delete")
@@ -1003,8 +1433,13 @@ async def cmd_api_del(ctx, idx: int = None):
     if not is_creator(ctx):
         return
     if idx and 1 <= idx <= len(API_KEYS):
-        API_KEYS.pop(idx - 1)
+        chave = API_KEYS.pop(idx - 1)
         salvar_config(config)
+        if firebase_available():
+            chave_hash = _hash_api_key(chave)
+            ref = db_ref(f"/apis/keys/{chave_hash}")
+            if ref:
+                ref.delete()
         await ctx.reply("🗑️ Removida!")
 
 @bot.command(name="criadores")
@@ -1128,14 +1563,17 @@ async def on_message(message):
 
     # Salvando histórico no arquivo do canal (mantendo as últimas 100 mensagens)
     if tipo and not is_dm:
-        caminho_arquivo = f"{nome}_{cid}_{tipo}.txt"
         data_atual_str = datetime.datetime.now().strftime("%d/%m %H:%M")
         registro_formatado = f"[{data_atual_str}] {message.author.name}: {message.content}"
         
-        if tipo in ["avisos", "noticias"]:
-            salvar_conteudo_canal(caminho_arquivo, tipo, registro_formatado)
-        elif tipo == "chat":
-            salvar_historico_chat(caminho_arquivo, registro_formatado)
+        if firebase_available():
+            append_channel_history(cid, tipo, nome, registro_formatado)
+        else:
+            caminho_arquivo = f"{nome}_{cid}_{tipo}.txt"
+            if tipo in ["avisos", "noticias"]:
+                salvar_conteudo_canal(caminho_arquivo, tipo, registro_formatado)
+            elif tipo == "chat":
+                salvar_historico_chat(caminho_arquivo, registro_formatado)
 
     await bot.process_commands(message)
 
@@ -1185,15 +1623,13 @@ async def on_message(message):
             if "[SALVAR_LEMBRAR:" in resposta:
                 tags_lembrar = re.findall(r'\[SALVAR_LEMBRAR:(.*?)\]', resposta, re.IGNORECASE)
                 for tag in tags_lembrar:
-                    with open(MEMORIA_GERAL_FILE, "a", encoding="utf-8") as f:
-                        f.write(f"- [{data_hora_atual}] {tag.strip()}\n")
+                    append_memoria_geral(tag.strip())
                 resposta = re.sub(r'\[SALVAR_LEMBRAR:.*?\]', '', resposta, flags=re.IGNORECASE).strip()
 
             if "[SALVAR_IMPORTANTE:" in resposta:
                 tags_importante = re.findall(r'\[SALVAR_IMPORTANTE:(.*?)\]', resposta, re.IGNORECASE)
                 for tag in tags_importante:
-                    with open(IMPORTANTE_FILE, "a", encoding="utf-8") as f:
-                        f.write(f"- [{data_hora_atual}] {tag.strip()}\n")
+                    append_importantes(tag.strip())
                 resposta = re.sub(r'\[SALVAR_IMPORTANTE:.*?\]', '', resposta, flags=re.IGNORECASE).strip()
 
             # Evitando limite de 2000 caracteres no envio
@@ -1204,5 +1640,3 @@ async def on_message(message):
                 await message.reply(resposta)
 
 
-if TOKEN:
-    bot.run(TOKEN)
