@@ -1,2 +1,42 @@
-# BotHub
-Conheça o **BotHub** por **daniblockssyt** (YouTube): a plataforma universal para colocar IAs no Discord com alta disponibilidade (zero quedas), painel web moderno, economia com moedas virtuais e liberação instantânea de VIPs via Pix!
+<div align="center">
+
+# 🚀 BotHub
+### A Plataforma Universal de Inteligência Artificial para o Discord
+
+Criado por **daniblockssyt** • [Inscreva-se no YouTube](https://www.youtube.com/@daniblockssYT)
+
+---
+
+</div>
+
+## 🌟 O que é o BotHub?
+
+O **BotHub** é um ecossistema inteligente, descentralizado e de alta performance projetado para qualquer pessoa colocar seu próprio bot de IA no Discord de forma automatizada, profissional e sem complicações. 
+
+Esqueça bots que caem toda hora ou configurações manuais difíceis. O BotHub entrega uma infraestrutura completa com redundância, painel web moderno, economia integrada e automação total de pagamentos.
+
+---
+
+## ✨ Recursos Principais
+
+- **⚡ Alta Disponibilidade (Zero Quedas):** Arquitetura inteligente de cluster ativo-passivo com sincronização em nuvem. Se um nó cair, outro assume instantaneamente.
+- **🌐 Painel Web Moderno (Dashboard):** Gerencie configurações, identidades, filtros e memórias de cada bot de forma totalmente individualizada através de uma interface futurista.
+- **🪙 Economia & Moedas Virtuais:** Sistema integrado de créditos para equilibrar o uso da IA, com comandos de resgate diário (`/daily`) e doações coletivas para o cofre da comunidade.
+- **💎 Monetização Automática via Pix:** Loja integrada com checkout rápido. O usuário paga pelo Pix e os cargos VIP ou pacotes são liberados instantaneamente.
+- **🤖 IA com Identidade Customizável:** Defina regras fixas de comportamento, moderação avançada e memórias de longo prazo que se adaptam perfeitamente ao seu servidor.
+
+---
+
+## 🛠️ Como Começar
+
+1. Clone ou baixe os arquivos do projeto.
+2. Configure suas credenciais no arquivo de configuração e no Firebase.
+3. Instale as dependências necessárias (`pip install -r requirements.txt`).
+4. Inicie o sistema e aproveite o poder do BotHub em sua comunidade!
+
+---
+
+<div align="center">
+  <sub>Desenvolvido com 💙 por <b>daniblockssyt</b>.</sub>
+  </div>
+  
