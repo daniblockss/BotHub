@@ -2,7 +2,7 @@
 
 # 🚀 BotHub
 
-<img src="https://raw.githubusercontent.com/daniblockss/BotHub/refs/heads/main/file_00000000dd44820e9a43d36109abb2c9.png" alt="BotHub Logo" width="220">
+<img src="./file_00000000dd44820e9a43d36109abb2c9.png" alt="BotHub Logo" width="220">
 
 ### A Plataforma Universal de Inteligência Artificial para o Discord
 
@@ -14,9 +14,9 @@ Criado por **daniblockssyt** • [Inscreva-se no YouTube](https://www.youtube.co
 
 ## 🌟 O que é o BotHub?
 
-O **BotHub** é um ecossistema inteligente, descentralizado e de alta performance projetado para qualquer pessoa colocar seu próprio bot de IA no Discord de forma automatizada, profissional e sem complicações.
+O **BotHub** é um ecossistema inteligente, descentralizado e de alta performance projetado para qualquer pessoa colocar seu próprio bot de IA no Discord de forma automatizada, profissional e sem com[...] 
 
-Esqueça bots que caem toda hora ou configurações manuais difíceis. O BotHub entrega uma infraestrutura completa com redundância, painel web moderno, economia integrada e automação total de pagamentos.
+Esqueça bots que caem toda hora ou configurações manuais difíceis. O BotHub entrega uma infraestrutura completa com redundância, painel web moderno, economia integrada e automação total de paga[...] 
 
 ---
 
@@ -27,3 +27,5 @@ Esqueça bots que caem toda hora ou configurações manuais difíceis. O BotHub 
 - **🪙 Economia & Moedas Virtuais:** Sistema integrado de créditos para equilibrar o uso da IA, com comandos de resgate diário (`/daily`) e doações coletivas para o cofre da comunidade.
 - **💎 Monetização Automática via Pix:** Loja integrada com checkout rápido. O usuário paga pelo Pix e os cargos VIP ou pacotes são liberados instantaneamente.
 - **🤖 IA com Identidade Customizável:** Defina regras fixas de comportamento, moderação avançada e memórias de longo prazo que se adaptam perfeitamente ao seu servidor.
+
+
