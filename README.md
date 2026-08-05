@@ -1,6 +1,9 @@
 <div align="center">
 
 # 🚀 BotHub
+
+<img src="https://raw.githubusercontent.com/daniblockss/BotHub/refs/heads/main/file_00000000dd44820e9a43d36109abb2c9.png" alt="BotHub Logo" width="220">
+
 ### A Plataforma Universal de Inteligência Artificial para o Discord
 
 Criado por **daniblockssyt** • [Inscreva-se no YouTube](https://www.youtube.com/@daniblockssYT)
@@ -11,7 +14,7 @@ Criado por **daniblockssyt** • [Inscreva-se no YouTube](https://www.youtube.co
 
 ## 🌟 O que é o BotHub?
 
-O **BotHub** é um ecossistema inteligente, descentralizado e de alta performance projetado para qualquer pessoa colocar seu próprio bot de IA no Discord de forma automatizada, profissional e sem complicações. 
+O **BotHub** é um ecossistema inteligente, descentralizado e de alta performance projetado para qualquer pessoa colocar seu próprio bot de IA no Discord de forma automatizada, profissional e sem complicações.
 
 Esqueça bots que caem toda hora ou configurações manuais difíceis. O BotHub entrega uma infraestrutura completa com redundância, painel web moderno, economia integrada e automação total de pagamentos.
 
