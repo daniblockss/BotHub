@@ -2,7 +2,7 @@
 
 # 🚀 BotHub
 
-<img src="https://raw.githubusercontent.com/daniblockss/BotHub/refs/heads/main/file_00000000dd44820e9a43d36109abb2c9.png" alt="BotHub Logo" width="220">
+<img src="https://raw.githubusercontent.com/daniblockss/BotHub/refs/heads/main/logo.png" alt="BotHub Logo" width="220">
 
 ### A Plataforma Universal de Inteligência Artificial para o Discord
 

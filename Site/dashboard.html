@@ -1,563 +1,417 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-PT">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>BotHub - Dashboard do Desenvolvedor</title>
-    <link rel="stylesheet" href="style.css">
+    <title>BotHub - Dashboard</title>
     <style>
-        /* === ESTILOS ESPECÍFICOS DO DASHBOARD === */
-        :root {
-            --sidebar-width: 260px;
-            --header-height: 70px;
-            --bg-dark: #030407;
-            --surface: rgba(13, 16, 23, 0.75);
-            --surface-hover: rgba(255, 255, 255, 0.05);
-            --glass-border: rgba(255, 255, 255, 0.08);
-            --accent-purple: #8b5cf6;
-            --accent-blue: #3b82f6;
-            --accent-green: #10b981;
-            --accent-amber: #f59e0b;
-            --accent-red: #ef4444;
+        /* =========================================
+           VARIÁVEIS E ESTILOS GLOBAIS
+           ========================================= */
+        :root { 
+            --sidebar-width: 260px; 
+            --bg-dark: #030407; 
+            --surface: rgba(13, 16, 23, 0.75); 
+            --glass-border: rgba(255, 255, 255, 0.08); 
+            --accent-purple: #8b5cf6; 
+            --accent-blue: #3b82f6; 
+            --accent-green: #10b981; 
             --text-main: #ffffff;
-            --text-muted: #8b949e;
+            --text-muted: #8b949e; 
+        }
+        
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', system-ui, sans-serif; }
+        
+        body { 
+            background: var(--bg-dark); 
+            color: var(--text-main); 
+            min-height: 100vh; 
+            display: flex; 
+            overflow-x: hidden; 
         }
 
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Inter', system-ui, -apple-system, sans-serif; }
-
-        body {
-            background-color: var(--bg-dark);
-            color: var(--text-main);
-            min-height: 100vh;
-            display: flex;
-            overflow-x: hidden;
-        }
-
-        /* Ambient Glow Backgrounds */
-        .glow-bg {
-            position: fixed; border-radius: 50%; filter: blur(120px); z-index: 0; pointer-events: none;
-        }
-        .glow-1 { width: 500px; height: 500px; background: rgba(139, 92, 246, 0.12); top: -100px; right: -100px; }
-        .glow-2 { width: 400px; height: 400px; background: rgba(59, 130, 246, 0.10); bottom: -100px; left: -100px; }
-
-        /* === LAYOUT E SIDEBAR === */
-        .sidebar {
-            width: var(--sidebar-width);
-            height: 100vh;
-            background: rgba(8, 10, 15, 0.85);
-            border-right: 1px solid var(--glass-border);
-            backdrop-filter: blur(20px);
-            position: fixed;
-            top: 0; left: 0;
+        /* =========================================
+           SIDEBAR (MENU LATERAL)
+           ========================================= */
+        .sidebar { 
+            width: var(--sidebar-width); 
+            height: 100vh; 
+            background: rgba(8, 10, 15, 0.95); 
+            border-right: 1px solid var(--glass-border); 
+            position: fixed; 
+            display: flex; 
+            flex-direction: column; 
+            padding: 24px; 
             z-index: 100;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            padding: 24px 16px;
-            transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            backdrop-filter: blur(10px);
+        }
+        
+        .brand {
+            font-size: 1.8rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 40px;
         }
 
-        .sidebar-brand {
+        .nav-menu { flex: 1; display: flex; flex-direction: column; gap: 10px; }
+        .nav-item {
+            color: var(--text-muted);
+            text-decoration: none;
+            padding: 12px 16px;
+            border-radius: 12px;
+            font-weight: 500;
+            transition: all 0.3s;
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            margin-bottom: 30px;
-            padding: 0 8px;
+            gap: 12px;
+        }
+        .nav-item.active, .nav-item:hover {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-main);
         }
 
-        .sidebar-menu { display: flex; flex-direction: column; gap: 8px; list-style: none; }
-        .sidebar-link {
-            display: flex; align-items: center; gap: 12px;
-            padding: 12px 16px; border-radius: 12px;
-            color: var(--text-muted); text-decoration: none;
-            font-size: 0.95rem; font-weight: 500;
-            transition: all 0.25s ease;
+        /* =========================================
+           ÁREA PRINCIPAL E CABEÇALHO
+           ========================================= */
+        .main-wrapper { 
+            margin-left: var(--sidebar-width); 
+            flex: 1; 
+            display: flex; 
+            flex-direction: column; 
+            width: calc(100% - var(--sidebar-width)); 
         }
-        .sidebar-link:hover, .sidebar-link.active {
-            background: rgba(139, 92, 246, 0.12);
-            color: #fff;
-            border: 1px solid rgba(139, 92, 246, 0.25);
+        
+        .top-header { 
+            padding: 20px 40px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center;
+            border-bottom: 1px solid var(--glass-border); 
+            background: rgba(3, 4, 7, 0.8); 
+            backdrop-filter: blur(12px); 
+            position: sticky;
+            top: 0;
+            z-index: 50;
         }
-        .sidebar-link svg { width: 20px; height: 20px; }
 
         .user-profile {
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 12px; background: rgba(255, 255, 255, 0.03);
-            border: 1px solid var(--glass-border); border-radius: 14px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
         }
         .user-avatar {
-            width: 38px; height: 38px; border-radius: 50%;
-            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple));
-            display: flex; align-items: center; justify-content: center;
-            font-weight: bold; font-size: 0.9rem; color: #fff;
-        }
-
-        /* === ÁREA PRINCIPAL (MAIN CONTENT) === */
-        .main-wrapper {
-            margin-left: var(--sidebar-width);
-            flex: 1;
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            z-index: 10;
-            transition: margin-left 0.3s ease;
-        }
-
-        /* Top Header */
-        .top-header {
-            height: var(--header-height);
-            padding: 0 32px;
-            display: flex; align-items: center; justify-content: space-between;
-            border-bottom: 1px solid var(--glass-border);
-            background: rgba(3, 4, 7, 0.6);
-            backdrop-filter: blur(15px);
-            position: sticky; top: 0; z-index: 90;
-        }
-
-        .toggle-mobile-menu {
-            display: none; background: none; border: none; color: #fff; cursor: pointer; padding: 6px;
-        }
-
-        .search-bar {
-            position: relative; width: 100%; max-width: 320px;
-        }
-        .search-bar input {
-            width: 100%; background: rgba(255, 255, 255, 0.04);
-            border: 1px solid var(--glass-border); border-radius: 10px;
-            padding: 10px 14px 10px 40px; color: #fff; outline: none; font-size: 0.9rem;
-            transition: 0.3s;
-        }
-        .search-bar input:focus { border-color: var(--accent-purple); background: rgba(0, 0, 0, 0.4); }
-        .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); width: 18px; height: 18px; }
-
-        .header-actions { display: flex; align-items: center; gap: 16px; }
-
-        .status-pill {
-            display: inline-flex; align-items: center; gap: 8px;
-            padding: 6px 14px; background: rgba(16, 185, 129, 0.1);
-            border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 20px;
-            color: var(--accent-green); font-size: 0.8rem; font-weight: 600;
-        }
-        .status-dot { width: 8px; height: 8px; background: var(--accent-green); border-radius: 50%; box-shadow: 0 0 10px var(--accent-green); }
-
-        /* Dashboard Content Area */
-        .dashboard-content { padding: 32px; max-width: 1400px; margin: 0 auto; width: 100%; }
-
-        .page-title { margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 15px; }
-        .page-title h1 { font-size: 2rem; font-weight: 800; letter-spacing: -0.5px; }
-        .page-title p { color: var(--text-muted); font-size: 0.95rem; }
-
-        /* Grid de Cards de Estatísticas */
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-            gap: 20px;
-            margin-bottom: 32px;
-        }
-
-        .stat-card {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
             background: var(--surface);
             border: 1px solid var(--glass-border);
-            border-radius: 18px;
-            padding: 22px;
-            backdrop-filter: blur(16px);
-            transition: all 0.3s ease;
+            object-fit: cover;
         }
-        .stat-card:hover { transform: translateY(-3px); border-color: rgba(255, 255, 255, 0.18); }
-        .stat-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; color: var(--text-muted); }
-        .stat-value { font-size: 2rem; font-weight: 800; color: #fff; margin-bottom: 8px; }
-        .stat-progress { width: 100%; height: 6px; background: rgba(255,255,255,0.06); border-radius: 10px; overflow: hidden; margin-top: 10px; }
-        .stat-bar { height: 100%; border-radius: 10px; background: linear-gradient(90deg, var(--accent-blue), var(--accent-purple)); }
 
-        /* Seção de Bots / Tabela Otimizada */
-        .section-card {
-            background: var(--surface);
+        .btn-glow { 
+            background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple)); 
+            border: none; 
+            padding: 12px 24px; 
+            border-radius: 12px; 
+            color: #fff; 
+            cursor: pointer; 
+            font-weight: 600; 
+            transition: all 0.3s;
+        }
+        .btn-glow:hover {
+            box-shadow: 0 10px 20px -5px rgba(139, 92, 246, 0.5);
+            transform: translateY(-2px);
+        }
+        .btn-outline {
+            background: transparent;
             border: 1px solid var(--glass-border);
-            border-radius: 20px;
-            padding: 24px;
-            backdrop-filter: blur(16px);
-            margin-bottom: 32px;
+            padding: 12px 24px;
+            border-radius: 12px;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: all 0.3s;
         }
-        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
-        .section-header h3 { font-size: 1.25rem; font-weight: 700; }
+        .btn-outline:hover {
+            background: rgba(255,255,255,0.05);
+            color: var(--text-main);
+        }
 
-        .bot-list { display: flex; flex-direction: column; gap: 14px; }
+        /* =========================================
+           CONTEÚDO DO DASHBOARD (LISTA DE BOTS)
+           ========================================= */
+        .dashboard-content { 
+            padding: 40px; 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            width: 100%; 
+        }
         
-        .bot-item {
-            display: grid;
-            grid-template-columns: 2fr 1fr 1fr 1fr auto;
+        .section-header {
+            display: flex;
+            justify-content: space-between;
             align-items: center;
-            padding: 16px 20px;
-            background: rgba(0, 0, 0, 0.25);
-            border: 1px solid var(--glass-border);
-            border-radius: 14px;
-            gap: 15px;
-            transition: 0.3s;
+            margin-bottom: 24px;
         }
-        .bot-item:hover { background: rgba(255, 255, 255, 0.03); border-color: rgba(139, 92, 246, 0.3); }
 
-        .bot-info { display: flex; align-items: center; gap: 14px; }
+        .section-card { 
+            background: var(--surface); 
+            border: 1px solid var(--glass-border); 
+            border-radius: 20px; 
+            padding: 30px; 
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.2);
+        }
+        
+        .bot-list { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 16px; 
+        }
+        
+        .bot-item { 
+            display: grid; 
+            grid-template-columns: 2fr 1fr 1fr 1fr auto; 
+            align-items: center; 
+            padding: 20px; 
+            background: rgba(255, 255, 255, 0.02); 
+            border: 1px solid var(--glass-border); 
+            border-radius: 16px; 
+            gap: 15px; 
+            transition: all 0.3s;
+        }
+        .bot-item:hover {
+            background: rgba(255, 255, 255, 0.04);
+            border-color: rgba(255, 255, 255, 0.15);
+        }
+
+        .bot-info {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
         .bot-icon {
-            width: 42px; height: 42px; border-radius: 12px;
-            background: rgba(139, 92, 246, 0.15); border: 1px solid rgba(139, 92, 246, 0.3);
-            display: flex; align-items: center; justify-content: center; font-size: 1.2rem;
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: rgba(139, 92, 246, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            border: 1px solid rgba(139, 92, 246, 0.2);
         }
-        .bot-name { font-weight: 600; font-size: 1rem; }
-        .bot-sub { color: var(--text-muted); font-size: 0.8rem; margin-top: 2px; }
 
-        .badge-status {
-            display: inline-flex; align-items: center; gap: 6px;
-            padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: 600;
+        .badge-online { 
+            background: rgba(16, 185, 129, 0.15); 
+            color: var(--accent-green); 
+            padding: 6px 12px; 
+            border-radius: 20px; 
+            font-size: 0.85rem; 
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
         }
-        .badge-online { background: rgba(16, 185, 129, 0.15); color: var(--accent-green); }
-        .badge-paused { background: rgba(245, 158, 11, 0.15); color: var(--accent-amber); }
-
-        .action-btns { display: flex; gap: 8px; }
-        .btn-icon {
-            background: rgba(255, 255, 255, 0.05); border: 1px solid var(--glass-border);
-            color: #fff; padding: 8px; border-radius: 8px; cursor: pointer; transition: 0.2s;
-            display: flex; align-items: center; justify-content: center;
-        }
-        .btn-icon:hover { background: rgba(255, 255, 255, 0.15); color: var(--accent-purple); }
-
-        /* Terminal Console Preview */
-        .terminal-box {
-            background: #06080c;
-            border: 1px solid var(--glass-border);
-            border-radius: 14px;
-            padding: 16px;
-            font-family: 'Courier New', Courier, monospace;
+        .badge-offline {
+            background: rgba(239, 68, 68, 0.15);
+            color: #ef4444;
+            padding: 6px 12px;
+            border-radius: 20px;
             font-size: 0.85rem;
-            color: #10b981;
-            height: 180px;
-            overflow-y: auto;
-            line-height: 1.6;
-        }
-        .log-time { color: var(--text-muted); }
-        .log-warn { color: var(--accent-amber); }
-
-        /* Modal Novo Bot */
-        .modal-overlay {
-            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(10px);
-            display: flex; justify-content: center; align-items: center;
-            z-index: 1000; opacity: 0; pointer-events: none; transition: 0.3s;
-        }
-        .modal-overlay.active { opacity: 1; pointer-events: all; }
-        .modal-card {
-            background: rgba(13, 16, 23, 0.95); border: 1px solid var(--glass-border);
-            padding: 30px; border-radius: 20px; width: 100%; max-width: 480px;
-            box-shadow: 0 20px 50px rgba(0,0,0,0.8);
+            font-weight: 600;
         }
 
-        /* ========================================= */
-        /* RESPONSIVIDADE - TABLETS E CELULARES      */
-        /* ========================================= */
-        @media (max-width: 992px) {
-            .sidebar { transform: translateX(-100%); }
-            .sidebar.open { transform: translateX(0); }
-            .main-wrapper { margin-left: 0; }
-            .toggle-mobile-menu { display: block; }
-            .bot-item { grid-template-columns: 1fr 1fr; gap: 12px; }
-            .bot-actions-cell { grid-column: span 2; justify-self: flex-end; }
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted);
         }
 
-        @media (max-width: 576px) {
-            .top-header { padding: 0 16px; }
-            .dashboard-content { padding: 16px; }
-            .search-bar { display: none; } /* Oculta busca para economizar espaço no mobile */
-            .bot-item { grid-template-columns: 1fr; text-align: left; }
-            .bot-actions-cell { grid-column: span 1; justify-self: flex-start; margin-top: 10px; }
-            .page-title h1 { font-size: 1.5rem; }
+        /* =========================================
+           RESPONSIVIDADE
+           ========================================= */
+        @media (max-width: 992px) { 
+            .sidebar { display: none; } 
+            .main-wrapper { margin-left: 0; width: 100%; } 
+            .bot-item { grid-template-columns: 1fr; text-align: center; justify-items: center; } 
+            .bot-info { flex-direction: column; }
         }
     </style>
 </head>
 <body>
 
-    <div class="glow-bg glow-1"></div>
-    <div class="glow-bg glow-2"></div>
+    <aside class="sidebar">
+        <div class="brand">BotHub</div>
+        
+        <nav class="nav-menu">
+            <a href="#" class="nav-item active">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                Projetos
+            </a>
+            <a href="#" class="nav-item">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                Configurações
+            </a>
+        </nav>
 
-    <aside class="sidebar" id="sidebar">
-        <div>
-            <div class="sidebar-brand">
-                <a href="index.html">
-                    <img src="logo.svg" alt="BotHub Logo" height="38" onerror="this.outerHTML='<h2 class=\'text-gradient\'>BotHub</h2>'">
-                </a>
-            </div>
-
-            <ul class="sidebar-menu">
-                <li><a href="#" class="sidebar-link active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>Visão Geral</a></li>
-                <li><a href="#" class="sidebar-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>Meus Bots</a></li>
-                <li><a href="#" class="sidebar-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>Métricas & Logs</a></li>
-                <li><a href="#" class="sidebar-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>Chaves API</a></li>
-                <li><a href="#" class="sidebar-link"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>Configurações</a></li>
-            </ul>
-        </div>
-
-        <div class="user-profile">
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <div class="user-avatar">AD</div>
-                <div>
-                    <strong style="font-size: 0.85rem; display: block;">Admin Developer</strong>
-                    <span style="font-size: 0.75rem; color: var(--text-muted);">Plano Pro 🔥</span>
-                </div>
-            </div>
-            <button class="btn-icon" title="Sair" onclick="fazerLogout()">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
-            </button>
-        </div>
+        <button class="btn-outline" onclick="fazerLogout()">Encerrar Sessão</button>
     </aside>
 
     <div class="main-wrapper">
-
         <header class="top-header">
-            <div style="display: flex; align-items: center; gap: 15px;">
-                <button class="toggle-mobile-menu" onclick="toggleSidebar()">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
-                </button>
-                <div class="search-bar">
-                    <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                    <input type="text" placeholder="Buscar bots, APIs...">
+            <div class="user-profile">
+                <img id="userAvatar" src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdib3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgc3Ryb2tlPSIjOGI5NDllIiBzdHJva2Utd2lkdGg9IjIiPjxwYXRoIGQ9Ik0yMCAyMXYtMmE0IDQgMCAwIDAtNC00SDhhNCA0IDAgMCAwLTQgNHYyIj48L3BhdGg+PGNpcmNsZSBjeD0iMTIiIGN5PSI3IiByPSI0Ij48L2NpcmNsZT48L3N2Zz4=" alt="Avatar" class="user-avatar">
+                <div>
+                    <div style="font-weight: 600;" id="userName">Carregando...</div>
+                    <div style="font-size: 0.8rem; color: var(--text-muted);" id="userPlan">Plano Gratuito</div>
                 </div>
             </div>
-
-            <div class="header-actions">
-                <div class="status-pill">
-                    <span class="status-dot"></span>
-                    <span>Sistemas Normal</span>
-                </div>
-                <button class="btn btn-glow" style="padding: 9px 20px; font-size: 0.85rem;" onclick="openModal()">+ Novo Bot</button>
-            </div>
+            <button class="btn-glow" onclick="alert('Funcionalidade em desenvolvimento!')">+ Novo Bot</button>
         </header>
 
         <main class="dashboard-content">
-            
-            <div class="page-title">
-                <div>
-                    <h1>Visão Geral do Servidor</h1>
-                    <p>Acompanhe a integridade e os recursos das suas IAs em tempo real.</p>
-                </div>
-            </div>
-
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-header">
-                        <span>Bots Ativos</span>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#8b5cf6" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line></svg>
-                    </div>
-                    <div class="stat-value">3 / 5</div>
-                    <span style="font-size: 0.8rem; color: var(--accent-green);">● 2 Online • 1 Pausado</span>
-                    <div class="stat-progress"><div class="stat-bar" style="width: 60%;"></div></div>
-                </div>
-
-                <div class="stat-card">
-                    <div class="stat-header">
-                        <span>Requisições (24h)</span>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
-                    </div>
-                    <div class="stat-value">148.2K</div>
-                    <span style="font-size: 0.8rem; color: var(--accent-green);">↑ +18% vs ontem</span>
-                    <div class="stat-progress"><div class="stat-bar" style="width: 82%;"></div></div>
-                </div>
-
-                <div class="stat-card">
-                    <div class="stat-header">
-                        <span>Uso de RAM</span>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#06b6d4" stroke-width="2"><path d="M18 20V10"></path><path d="M12 20V4"></path><path d="M6 20v-6"></path></svg>
-                    </div>
-                    <div class="stat-value">1.4 GB</div>
-                    <span style="font-size: 0.8rem; color: var(--text-muted);">de 4.0 GB Alocados</span>
-                    <div class="stat-progress"><div class="stat-bar" style="width: 35%;"></div></div>
-                </div>
-
-                <div class="stat-card">
-                    <div class="stat-header">
-                        <span>Uptime Geral</span>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-                    </div>
-                    <div class="stat-value">99.98%</div>
-                    <span style="font-size: 0.8rem; color: var(--accent-green);">Excelente estabilidade</span>
-                    <div class="stat-progress"><div class="stat-bar" style="width: 99%; background: var(--accent-green);"></div></div>
-                </div>
-            </div>
-
             <div class="section-card">
                 <div class="section-header">
-                    <h3>Meus Projetos Ativos</h3>
-                    <span style="font-size: 0.85rem; color: var(--text-muted);">Servidor: br-south-1 (São Paulo)</span>
+                    <h2>Projetos Ativos</h2>
+                    <span style="color: var(--text-muted); font-size: 0.9rem;" id="botCount">0 bots</span>
                 </div>
-
-                <div class="bot-list">
-                    
-                    <div class="bot-item">
-                        <div class="bot-info">
-                            <div class="bot-icon">🌪️</div>
-                            <div>
-                                <div class="bot-name">Breezinho IA</div>
-                                <div class="bot-sub">Python 3.11 • discord.py • Main Branch</div>
-                            </div>
-                        </div>
-                        <div>
-                            <span class="badge-status badge-online">🟢 Online</span>
-                        </div>
-                        <div>
-                            <span style="font-size: 0.85rem; color: var(--text-muted); display: block;">Ping</span>
-                            <strong style="font-size: 0.9rem;">42 ms</strong>
-                        </div>
-                        <div>
-                            <span style="font-size: 0.85rem; color: var(--text-muted); display: block;">Uso RAM</span>
-                            <strong style="font-size: 0.9rem;">240 MB</strong>
-                        </div>
-                        <div class="bot-actions-cell">
-                            <div class="action-btns">
-                                <button class="btn-icon" title="Reiniciar Bot" onclick="alert('Reiniciando Breezinho IA...')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg></button>
-                                <button class="btn-icon" title="Ver Console"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg></button>
-                                <button class="btn-icon" title="Configurações"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></button>
-                            </div>
-                        </div>
+                
+                <div class="bot-list" id="botListContainer">
+                    <div class="empty-state">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom: 15px; color: #8b5cf6;">
+                            <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect><rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect><line x1="6" y1="6" x2="6.01" y2="6"></line><line x1="6" y1="18" x2="6.01" y2="18"></line>
+                        </svg>
+                        <h3>A carregar a sua infraestrutura...</h3>
                     </div>
-
-                    <div class="bot-item">
-                        <div class="bot-info">
-                            <div class="bot-icon">🤖</div>
-                            <div>
-                                <div class="bot-name">SupportBot Express</div>
-                                <div class="bot-sub">Node.js 20 • Telegram API</div>
-                            </div>
-                        </div>
-                        <div>
-                            <span class="badge-status badge-online">🟢 Online</span>
-                        </div>
-                        <div>
-                            <span style="font-size: 0.85rem; color: var(--text-muted); display: block;">Ping</span>
-                            <strong style="font-size: 0.9rem;">88 ms</strong>
-                        </div>
-                        <div>
-                            <span style="font-size: 0.85rem; color: var(--text-muted); display: block;">Uso RAM</span>
-                            <strong style="font-size: 0.9rem;">110 MB</strong>
-                        </div>
-                        <div class="bot-actions-cell">
-                            <div class="action-btns">
-                                <button class="btn-icon" title="Reiniciar Bot"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg></button>
-                                <button class="btn-icon" title="Ver Console"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg></button>
-                                <button class="btn-icon" title="Configurações"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="bot-item">
-                        <div class="bot-info">
-                            <div class="bot-icon">🛡️</div>
-                            <div>
-                                <div class="bot-name">AutoMod Pro</div>
-                                <div class="bot-sub">Python 3.10 • Pausado manualmente</div>
-                            </div>
-                        </div>
-                        <div>
-                            <span class="badge-status badge-paused">⏸️ Pausado</span>
-                        </div>
-                        <div>
-                            <span style="font-size: 0.85rem; color: var(--text-muted); display: block;">Ping</span>
-                            <strong style="font-size: 0.9rem;">--</strong>
-                        </div>
-                        <div>
-                            <span style="font-size: 0.85rem; color: var(--text-muted); display: block;">Uso RAM</span>
-                            <strong style="font-size: 0.9rem;">0 MB</strong>
-                        </div>
-                        <div class="bot-actions-cell">
-                            <div class="action-btns">
-                                <button class="btn-icon" style="color: var(--accent-green)" title="Iniciar Bot"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg></button>
-                                <button class="btn-icon" title="Configurações"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></button>
-                            </div>
-                        </div>
-                    </div>
-
                 </div>
             </div>
-
-            <div class="section-card">
-                <div class="section-header">
-                    <h3>Console Unificado de Eventos</h3>
-                    <span style="font-size: 0.85rem; color: var(--text-muted);">Tempo Real (WebSocket)</span>
-                </div>
-                <div class="terminal-box" id="terminalLog">
-                    <div><span class="log-time">[14:32:01]</span> <span style="color:#3b82f6">[INFO]</span> Servidor de hospedagem inicializado com sucesso.</div>
-                    <div><span class="log-time">[14:32:04]</span> <span style="color:#10b981">[SUCCESS]</span> Breezinho IA autenticado com a Gateway do Discord. Ping: 42ms.</div>
-                    <div><span class="log-time">[14:35:12]</span> <span style="color:#3b82f6">[INFO]</span> SupportBot Express conectou ao endpoint Telegram.</div>
-                    <div><span class="log-time">[14:40:00]</span> <span class="log-warn">[WARN]</span> AutoMod Pro entrou em modo de suspensão por inatividade.</div>
-                    <div><span class="log-time">[14:42:15]</span> <span style="color:#10b981">[SUCCESS]</span> Memória contextual sincronizada com banco de dados.</div>
-                </div>
-            </div>
-
         </main>
     </div>
 
-    <div class="modal-overlay" id="modalDeploy">
-        <div class="modal-card">
-            <h2 style="font-size: 1.5rem; margin-bottom: 8px;">Deploy de Novo Bot</h2>
-            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 20px;">Conecte o seu repositório do GitHub ou envie o projeto em ZIP.</p>
-            
-            <form onsubmit="handleDeploySubmit(event)">
-                <div style="margin-bottom: 16px;">
-                    <label style="display:block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 6px;">Nome da Aplicação</label>
-                    <input type="text" placeholder="Ex: MeuBotDiscord" required style="width:100%; background:rgba(0,0,0,0.4); border:1px solid var(--glass-border); padding:12px; border-radius:10px; color:#fff; outline:none;">
-                </div>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { getFirestore, collection, getDocs, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        // SUAS CREDENCIAIS REAIS DO BOTFORGE
+        const firebaseConfig = {
+            apiKey: "AIzaSyCdBUSX02dZnEisMfhQpXa1SekbUn_0clA",
+            authDomain: "botforge-2de3f.firebaseapp.com",
+            databaseURL: "https://botforge-2de3f-default-rtdb.firebaseio.com",
+            projectId: "botforge-2de3f",
+            storageBucket: "botforge-2de3f.firebasestorage.app",
+            messagingSenderId: "575654861649",
+            appId: "1:575654861649:web:9d3851308bbb6d74101170",
+            measurementId: "G-NSBVFR4D9X"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // VERIFICA SE O USUÁRIO ESTÁ LOGADO
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                // Se não estiver autenticado, expulsa para o login
+                window.location.href = "login.html";
+            } else {
+                // Atualiza a interface com os dados do usuário autenticado
+                document.getElementById('userName').innerText = user.displayName || "Desenvolvedor";
+                if(user.photoURL) {
+                    document.getElementById('userAvatar').src = user.photoURL;
+                }
                 
-                <div style="margin-bottom: 20px;">
-                    <label style="display:block; font-size: 0.85rem; color: var(--text-muted); margin-bottom: 6px;">URL do Repositório GitHub</label>
-                    <input type="url" placeholder="https://github.com/usuario/meu-bot" required style="width:100%; background:rgba(0,0,0,0.4); border:1px solid var(--glass-border); padding:12px; border-radius:10px; color:#fff; outline:none;">
-                </div>
-
-                <div style="display:flex; gap:12px; justify-content:flex-end;">
-                    <button type="button" class="btn" style="border-radius:10px; padding:10px 20px;" onclick="closeModal()">Cancelar</button>
-                    <button type="submit" class="btn btn-glow" style="border-radius:10px; padding:10px 20px;">Iniciar Deploy</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <script>
-        // Trava de segurança: redireciona se não estiver logado
-        window.addEventListener('DOMContentLoaded', () => {
-            if (localStorage.getItem('botHubLogado') !== 'true') {
-                window.location.href = 'login.html';
+                // Busca se ele tem um plano específico gravado no banco (opcional)
+                try {
+                    const userDoc = await getDoc(doc(db, "usuarios", user.uid));
+                    if (userDoc.exists() && userDoc.data().plano) {
+                        document.getElementById('userPlan').innerText = `Plano ${userDoc.data().plano}`;
+                    }
+                } catch (e) {
+                    console.log("Aviso: perfil não encontrado no Firestore, usando padrão.");
+                }
+                
+                // Carrega os bots deste usuário específico
+                carregarBots(user.uid);
             }
         });
 
-        // Alternar Sidebar no Mobile
-        function toggleSidebar() {
-            document.getElementById('sidebar').classList.toggle('open');
+        // FUNÇÃO PARA BUSCAR E RENDERIZAR OS BOTS DO FIRESTORE
+        async function carregarBots(userId) {
+            const container = document.getElementById('botListContainer');
+            
+            try {
+                // Vai na coleção de bots do usuário logado
+                const querySnapshot = await getDocs(collection(db, "usuarios", userId, "bots"));
+                
+                document.getElementById('botCount').innerText = `${querySnapshot.size} bot(s)`;
+
+                if (querySnapshot.empty) {
+                    container.innerHTML = `
+                        <div class="empty-state">
+                            <h3 style="color: #fff; margin-bottom: 8px;">Nenhum bot encontrado</h3>
+                            <p>Você ainda não hospedou nenhum projeto. Clique em '+ Novo Bot' para começar.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                container.innerHTML = ""; // Limpa o estado de carregamento
+
+                querySnapshot.forEach((docSnap) => {
+                    const bot = docSnap.data();
+                    
+                    // Lógica para cor do status
+                    const isOnline = bot.status === 'Online' || bot.status === 'online';
+                    const badgeClass = isOnline ? 'badge-online' : 'badge-offline';
+                    const statusText = isOnline ? '🟢 Online' : '🔴 Offline';
+                    const botIcon = bot.icone || '🤖';
+
+                    const botHTML = `
+                        <div class="bot-item">
+                            <div class="bot-info">
+                                <div class="bot-icon">${botIcon}</div>
+                                <div>
+                                    <strong style="font-size: 1.1rem;">${bot.nome || 'Projeto Sem Nome'}</strong>
+                                    <div style="color: var(--text-muted); font-size: 0.85rem; margin-top: 4px;">Tokens encriptados no Firebase</div>
+                                </div>
+                            </div>
+                            <div>
+                                <span class="${badgeClass}">${statusText}</span>
+                            </div>
+                            <div>
+                                <span style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Latência</span>
+                                <strong style="font-size: 0.95rem;">${bot.ping || '--'} ms</strong>
+                            </div>
+                            <div>
+                                <span style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Consumo RAM</span>
+                                <strong style="font-size: 0.95rem;">${bot.ram || '--'} MB</strong>
+                            </div>
+                            <div>
+                                <button class="btn-outline" style="padding: 8px 16px; font-size: 0.9rem;">Gerir Bot</button>
+                            </div>
+                        </div>
+                    `;
+                    container.innerHTML += botHTML;
+                });
+            } catch (error) {
+                console.error("Erro ao carregar bots:", error);
+                container.innerHTML = `
+                    <div class="empty-state" style="color: #ef4444;">
+                        <p>Erro ao carregar os seus bots. Verifique as permissões do Firestore.</p>
+                    </div>
+                `;
+            }
         }
 
-        // Logout
-        function fazerLogout() {
-            localStorage.removeItem('botHubLogado');
-            window.location.href = 'index.html';
-        }
-
-        // Modal de Deploy
-        function openModal() { document.getElementById('modalDeploy').classList.add('active'); }
-        function closeModal() { document.getElementById('modalDeploy').classList.remove('active'); }
-
-        function handleDeploySubmit(e) {
-            e.preventDefault();
-            alert('🚀 Deploy iniciado com sucesso! O bot estará online em breve.');
-            closeModal();
-        }
-
-        // Simulação de logs ao vivo no Terminal
-        setInterval(() => {
-            const terminal = document.getElementById('terminalLog');
-            const now = new Date().toTimeString().split(' ')[0];
-            const msgs = [
-                `<div><span class="log-time">[${now}]</span> <span style="color:#3b82f6">[INFO]</span> Verificação de saúde dos nós concluída. Uptime: 100%.</div>`,
-                `<div><span class="log-time">[${now}]</span> <span style="color:#10b981">[SUCCESS]</span> Requisição processada em 18ms.</div>`,
-                `<div><span class="log-time">[${now}]</span> <span style="color:#3b82f6">[INFO]</span> Sincronizando comandos Slash com a Gateway.</div>`
-            ];
-            const randomMsg = msgs[Math.floor(Math.random() * msgs.length)];
-            terminal.innerHTML += randomMsg;
-            terminal.scrollTop = terminal.scrollHeight;
-        }, 10000);
+        // FUNÇÃO DE LOGOUT
+        window.fazerLogout = function() {
+            signOut(auth).then(() => {
+                localStorage.removeItem('botHubLogado');
+                window.location.href = 'index.html'; // Volta pra página inicial / login
+            });
+        };
     </script>
 </body>
 </html>
