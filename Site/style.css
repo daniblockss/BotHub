@@ -1,0 +1,98 @@
+/* === VARIÁVEIS GERAIS === */
+:root {
+    --bg-dark: #030407;
+    --bg-surface: rgba(20, 22, 30, 0.5);
+    --text-main: #ffffff;
+    --text-muted: #8b949e;
+    --accent-blue: #3b82f6;
+    --accent-purple: #8b5cf6;
+    --accent-cyan: #06b6d4;
+    --gradient-glow: linear-gradient(135deg, var(--accent-blue), var(--accent-purple), var(--accent-cyan));
+    --glass-border: rgba(255, 255, 255, 0.05);
+    --font-main: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: var(--font-main);
+}
+
+body {
+    background-color: var(--bg-dark);
+    color: var(--text-main);
+    overflow-x: hidden;
+    background-image: 
+        radial-gradient(circle at 0% 0%, rgba(59, 130, 246, 0.15) 0%, transparent 40%),
+        radial-gradient(circle at 100% 100%, rgba(139, 92, 246, 0.1) 0%, transparent 40%);
+    background-attachment: fixed;
+    min-height: 100vh;
+}
+
+/* === ANIMAÇÕES === */
+@keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-20px); } }
+@keyframes pulseGlow { 0%, 100% { box-shadow: 0 0 40px rgba(139, 92, 246, 0.4), 0 0 80px rgba(59, 130, 246, 0.2); } 50% { box-shadow: 0 0 60px rgba(139, 92, 246, 0.7), 0 0 120px rgba(59, 130, 246, 0.4); } }
+@keyframes spinSlow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+@keyframes spinReverse { from { transform: rotate(360deg) scale(0.8); } to { transform: rotate(0deg) scale(0.8); } }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+
+.text-gradient {
+    background: var(--gradient-glow);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-size: 200% auto;
+    animation: gradientMove 4s ease infinite;
+}
+@keyframes gradientMove { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+
+/* === BOTÕES GERAIS === */
+.btn {
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--text-main);
+    border: 1px solid var(--glass-border);
+    padding: 12px 28px;
+    border-radius: 50px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(5px);
+    text-decoration: none;
+    display: inline-block;
+    text-align: center;
+}
+.btn:hover { background: rgba(255, 255, 255, 0.1); transform: translateY(-2px); }
+.btn-glow {
+    background: var(--gradient-glow); background-size: 200% auto; border: none; color: #fff; font-weight: 600;
+    box-shadow: 0 10px 20px -10px rgba(139, 92, 246, 0.8);
+}
+.btn-glow:hover { box-shadow: 0 15px 25px -5px rgba(139, 92, 246, 0.9); transform: translateY(-3px) scale(1.02); }
+.btn-full { width: 100%; border-radius: 10px; margin-top: 15px; }
+
+/* === NAVEGAÇÃO === */
+nav {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 20px 8%; position: fixed; width: 100%; top: 0; z-index: 100;
+    background: rgba(3, 4, 7, 0.6); backdrop-filter: blur(16px); border-bottom: 1px solid var(--glass-border);
+}
+.logo { font-size: 1.8rem; font-weight: 800; letter-spacing: -1px; text-decoration: none; }
+
+/* === RESPONSIVIDADE (MOBILE & TABLETS) === */
+@media (max-width: 992px) {
+    nav { padding: 15px 5%; }
+    .hero { grid-template-columns: 1fr !important; text-align: center; padding-top: 120px !important; gap: 20px !important; }
+    .hero-text h1 { font-size: 3rem !important; }
+    .hero-text p { margin: 0 auto 30px auto !important; }
+    .hero-actions { justify-content: center; flex-direction: column; align-items: center; }
+    .hero-actions .btn { width: 100%; max-width: 300px; }
+    .bot-visual { transform: scale(0.7); margin-top: 0; height: 300px !important; }
+    .features { padding: 50px 5% !important; }
+    .dash-grid { grid-template-columns: 1fr !important; }
+}
+
+@media (max-width: 480px) {
+    .hero-text h1 { font-size: 2.2rem !important; }
+    .bot-visual { transform: scale(0.5); }
+    .login-container { padding: 30px 20px !important; }
+}

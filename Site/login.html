@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BotHub - Login</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body { display: flex; justify-content: center; align-items: center; height: 100vh; padding: 20px; }
+        .login-container { background: rgba(10, 12, 18, 0.7); border: 1px solid var(--glass-border); padding: 40px; border-radius: 20px; width: 100%; max-width: 400px; backdrop-filter: blur(20px); text-align: center; animation: fadeIn 0.5s ease-out; }
+        .login-container h2 { font-size: 2rem; margin-bottom: 5px; }
+        .login-container p { color: var(--text-muted); margin-bottom: 25px; }
+        .input-group { margin-bottom: 20px; text-align: left; }
+        .input-group label { display: block; margin-bottom: 8px; font-size: 0.85rem; color: var(--text-muted); }
+        .input-group input { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid var(--glass-border); padding: 14px; border-radius: 10px; color: #fff; font-size: 1rem; outline: none; transition: 0.3s; }
+        .input-group input:focus { border-color: var(--accent-purple); box-shadow: 0 0 15px rgba(139, 92, 246, 0.2); }
+        .back-link { display: inline-block; margin-top: 20px; color: var(--text-muted); text-decoration: none; font-size: 0.9rem; }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <h2 class="text-gradient">Acessar Sistema</h2>
+        <p>Faça login para gerenciar suas IAs</p>
+
+        <form onsubmit="realizarLogin(event)">
+            <div class="input-group">
+                <label>E-mail</label>
+                <input type="email" placeholder="admin@empresa.com" required>
+            </div>
+            <div class="input-group">
+                <label>Senha</label>
+                <input type="password" placeholder="••••••••" required>
+            </div>
+            <button type="submit" class="btn btn-glow btn-full" id="loginSubmitBtn">Entrar no Dashboard</button>
+        </form>
+        <a href="index.html" class="back-link">← Voltar para o início</a>
+    </div>
+
+    <script>
+        function realizarLogin(e) {
+            e.preventDefault();
+            const btn = document.getElementById('loginSubmitBtn');
+            btn.innerHTML = "Processando...";
+            btn.style.opacity = "0.7";
+            
+            setTimeout(() => {
+                localStorage.setItem('botHubLogado', 'true');
+                window.location.href = 'dashboard.html';
+            }, 1000);
+        }
+    </script>
+</body>
+</html>
