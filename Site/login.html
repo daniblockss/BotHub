@@ -6,34 +6,24 @@
     <title>BotHub - Autenticação</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        body { display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; background: var(--bg-dark); color: var(--text-main); overflow-x: hidden; }
+        body { display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; background: var(--bg-dark, #030407); color: var(--text-main, #fff); overflow-x: hidden; font-family: 'Inter', system-ui, sans-serif; }
         .glow-bg { position: absolute; border-radius: 50%; filter: blur(100px); z-index: 0; pointer-events: none; }
         .glow-1 { width: 40vw; height: 40vw; max-width: 400px; max-height: 400px; background: rgba(139, 92, 246, 0.2); top: -10%; left: -10%; }
         .glow-2 { width: 45vw; height: 45vw; max-width: 450px; max-height: 450px; background: rgba(59, 130, 246, 0.15); bottom: -10%; right: -10%; }
-        .login-card { position: relative; z-index: 10; background: var(--surface, rgba(13, 16, 23, 0.75)); border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.08)); padding: 40px; border-radius: 24px; width: 100%; max-width: 450px; backdrop-filter: blur(24px); box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05); }
-        .login-header { text-align: center; margin-bottom: 30px; }
+        
+        .login-card { position: relative; z-index: 10; background: var(--surface, rgba(13, 16, 23, 0.75)); border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.08)); padding: 40px; border-radius: 24px; width: 100%; max-width: 400px; backdrop-filter: blur(24px); box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05); text-align: center; }
+        
+        .login-header { margin-bottom: 35px; }
         .login-header h2 { font-size: 2.2rem; font-weight: 800; margin-bottom: 8px; line-height: 1.2; }
         .login-header p { color: var(--text-muted, #8b949e); font-size: 0.95rem; }
-        .social-auth { display: flex; gap: 12px; margin-bottom: 24px; }
-        .btn-social { flex: 1; display: flex; align-items: center; justify-content: center; gap: 10px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--glass-border); padding: 12px; border-radius: 12px; color: #fff; font-size: 0.9rem; font-weight: 500; cursor: pointer; transition: all 0.3s ease; }
-        .btn-social:hover { background: rgba(255, 255, 255, 0.08); transform: translateY(-2px); }
-        .btn-social svg { width: 18px; height: 18px; fill: currentColor; }
-        .divider { display: flex; align-items: center; text-align: center; margin-bottom: 24px; color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; }
-        .divider::before, .divider::after { content: ''; flex: 1; border-bottom: 1px solid var(--glass-border); }
-        .divider span { padding: 0 12px; }
-        .input-group { margin-bottom: 20px; }
-        .input-group label { display: block; margin-bottom: 8px; font-size: 0.85rem; font-weight: 500; color: var(--text-muted); }
-        .input-wrapper { position: relative; display: flex; align-items: center; }
-        .input-icon { position: absolute; left: 14px; color: #6e7681; width: 18px; height: 18px; pointer-events: none; }
-        .input-wrapper input { width: 100%; background: rgba(0, 0, 0, 0.4); border: 1px solid var(--glass-border); padding: 14px 42px; border-radius: 12px; color: #fff; font-size: 0.95rem; outline: none; transition: all 0.3s ease; }
-        .input-wrapper input:focus { border-color: #8b5cf6; box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15); }
-        .btn-glow { width: 100%; background: linear-gradient(135deg, #3b82f6, #8b5cf6); border: none; padding: 14px; border-radius: 12px; color: #fff; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.3s ease; }
-        .btn-glow:hover { box-shadow: 0 12px 25px -5px rgba(139, 92, 246, 0.9); transform: translateY(-2px); }
-        .card-footer { margin-top: 24px; text-align: center; font-size: 0.9rem; color: var(--text-muted); }
-        .card-footer a { color: #fff; font-weight: 600; text-decoration: none; margin-left: 5px; }
+        
+        .social-auth-vertical { display: flex; flex-direction: column; gap: 16px; }
+        .btn-social { display: flex; align-items: center; justify-content: center; gap: 12px; background: rgba(255, 255, 255, 0.03); border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.08)); padding: 14px; border-radius: 12px; color: #fff; font-size: 1rem; font-weight: 600; cursor: pointer; transition: all 0.3s ease; width: 100%; }
+        .btn-social:hover { background: rgba(255, 255, 255, 0.08); transform: translateY(-2px); border-color: rgba(255, 255, 255, 0.2); }
+        .btn-social svg { width: 22px; height: 22px; }
+        
         .toast { position: fixed; top: 20px; right: 20px; background: rgba(16, 185, 129, 0.9); color: #fff; padding: 14px 24px; border-radius: 12px; font-weight: 500; display: flex; align-items: center; gap: 10px; z-index: 1000; transform: translateY(-100px); opacity: 0; transition: all 0.4s; backdrop-filter: blur(10px); }
         .toast.show { transform: translateY(0); opacity: 1; }
-        @media (max-width: 480px) { .login-card { padding: 30px 20px; } .social-auth { flex-direction: column; } }
     </style>
 </head>
 <body>
@@ -48,56 +38,34 @@
 
     <div class="login-card">
         <div class="login-header">
-            <h2 id="form-title">Bem-vindo</h2>
-            <p id="form-subtitle">Aceda à sua infraestrutura de IA</p>
+            <h2>BotHub</h2>
+            <p>Faça login para gerir os seus bots</p>
         </div>
 
-        <div class="social-auth">
-            <button class="btn-social" type="button" onclick="socialAuth('GitHub')">
-                <svg viewBox="0 0 24 24"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
-                Entrar com GitHub
+        <div class="social-auth-vertical">
+            <button class="btn-social" onclick="socialAuth('Google')">
+                <svg viewBox="0 0 24 24">
+                    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                </svg>
+                Continuar com Google
             </button>
-        </div>
 
-        <div class="divider"><span>ou palavra-passe</span></div>
-
-        <form id="authForm">
-            <div class="input-group" id="name-group" style="display: none;">
-                <label>Nome Completo</label>
-                <div class="input-wrapper">
-                    <input type="text" id="name" placeholder="O seu nome">
-                    <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-                </div>
-            </div>
-
-            <div class="input-group">
-                <label>E-mail</label>
-                <div class="input-wrapper">
-                    <input type="email" id="email" placeholder="nome@empresa.com" required>
-                    <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path></svg>
-                </div>
-            </div>
-
-            <div class="input-group">
-                <label>Palavra-passe</label>
-                <div class="input-wrapper">
-                    <input type="password" id="password" placeholder="••••••••" required>
-                    <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-                </div>
-            </div>
-
-            <button type="submit" class="btn-glow" id="submitBtn">Entrar no Dashboard</button>
-        </form>
-
-        <div class="card-footer">
-            <span id="toggle-text">Ainda não tem conta?</span>
-            <a href="#" id="toggle-link" onclick="switchAuthMode(event)">Criar Conta</a>
+            <button class="btn-social" onclick="socialAuth('GitHub')">
+                <svg viewBox="0 0 24 24" fill="#fff">
+                    <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/>
+                </svg>
+                Continuar com GitHub
+            </button>
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-        import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, GithubAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        // Importando ambos os provedores (Google e GitHub)
+        import { getAuth, GithubAuthProvider, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { getFirestore, doc, setDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -114,18 +82,6 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        
-        let isSignUpMode = false;
-
-        window.switchAuthMode = function(e) {
-            e.preventDefault();
-            isSignUpMode = !isSignUpMode;
-            document.getElementById('form-title').innerText = isSignUpMode ? "Criar Conta" : "Bem-vindo";
-            document.getElementById('name-group').style.display = isSignUpMode ? "block" : "none";
-            document.getElementById('submitBtn').innerText = isSignUpMode ? "Registar Conta" : "Entrar no Dashboard";
-            document.getElementById('toggle-text').innerText = isSignUpMode ? "Já tem uma conta?" : "Ainda não tem conta?";
-            document.getElementById('toggle-link').innerText = isSignUpMode ? "Fazer Login" : "Criar Conta";
-        };
 
         function showToast(msg) {
             const toast = document.getElementById('toast');
@@ -134,45 +90,40 @@
             setTimeout(() => toast.classList.remove('show'), 3000);
         }
 
-        document.getElementById('authForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            const btn = document.getElementById('submitBtn');
-            btn.innerText = "A autenticar...";
+        window.socialAuth = async function(providerName) {
+            let provider;
+            
+            // Define o provedor com base no botão clicado
+            if (providerName === 'GitHub') {
+                provider = new GithubAuthProvider();
+            } else if (providerName === 'Google') {
+                provider = new GoogleAuthProvider();
+            }
 
             try {
-                if (isSignUpMode) {
-                    const name = document.getElementById('name').value;
-                    const userCred = await createUserWithEmailAndPassword(auth, email, password);
-                    await setDoc(doc(db, "usuarios", userCred.user.uid), {
-                        nome: name, email: email, plano: "Gratuito", criadoEm: serverTimestamp()
-                    });
-                    showToast("Conta criada com sucesso!");
-                } else {
-                    await signInWithEmailAndPassword(auth, email, password);
-                    showToast("Autenticado com sucesso!");
-                }
-                setTimeout(() => window.location.href = 'dashboard.html', 1500);
-            } catch (error) {
-                showToast("Erro: " + error.message);
-                btn.innerText = isSignUpMode ? "Registar Conta" : "Entrar no Dashboard";
-            }
-        });
+                // Abre o popup de login
+                const result = await signInWithPopup(auth, provider);
+                const user = result.user;
 
-        window.socialAuth = async function(providerName) {
-            if (providerName === 'GitHub') {
-                const provider = new GithubAuthProvider();
-                try {
-                    const result = await signInWithPopup(auth, provider);
-                    await setDoc(doc(db, "usuarios", result.user.uid), {
-                        nome: result.user.displayName || "Dev", email: result.user.email, plano: "Gratuito", ultimoLogin: serverTimestamp()
-                    }, { merge: true });
-                    showToast(`Bem-vindo, ${result.user.displayName}!`);
-                    setTimeout(() => window.location.href = 'dashboard.html', 1500);
-                } catch (error) {
-                    showToast("Erro GitHub: " + error.message);
-                }
+                // Salva ou atualiza o usuário no banco de dados
+                await setDoc(doc(db, "usuarios", user.uid), {
+                    nome: user.displayName || "Usuário",
+                    email: user.email,
+                    avatar: user.photoURL,
+                    plano: "Gratuito",
+                    provedor: providerName,
+                    ultimoLogin: serverTimestamp()
+                }, { merge: true });
+
+                showToast(`Bem-vindo, ${user.displayName || 'Dev'}!`);
+                
+                // Grava a sessão localmente e redireciona
+                localStorage.setItem('botHubLogado', 'true');
+                setTimeout(() => window.location.href = 'dashboard.html', 1500);
+
+            } catch (error) {
+                console.error(error);
+                showToast("Erro na autenticação: " + error.message);
             }
         };
     </script>
