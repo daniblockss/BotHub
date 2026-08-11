@@ -1,14 +1,15 @@
 /* === VARIÁVEIS GERAIS === */
 :root {
-    --bg-dark: #030407;
-    --bg-surface: rgba(20, 22, 30, 0.5);
+    --bg-dark: #04090b;
+    --bg-surface: rgba(12, 24, 29, 0.62);
     --text-main: #ffffff;
-    --text-muted: #8b949e;
+    --text-muted: #91a7ac;
     --accent-blue: #3b82f6;
     --accent-purple: #8b5cf6;
-    --accent-cyan: #06b6d4;
-    --gradient-glow: linear-gradient(135deg, var(--accent-blue), var(--accent-purple), var(--accent-cyan));
-    --glass-border: rgba(255, 255, 255, 0.05);
+    --accent-cyan: #22d3ee;
+    --accent-green: #39ff9a;
+    --gradient-glow: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue), var(--accent-green));
+    --glass-border: rgba(139, 226, 232, 0.13);
     --font-main: 'Inter', system-ui, -apple-system, sans-serif;
 }
 
@@ -20,14 +21,42 @@
 }
 
 body {
+    position: relative;
+    isolation: isolate;
     background-color: var(--bg-dark);
     color: var(--text-main);
     overflow-x: hidden;
-    background-image: 
-        radial-gradient(circle at 0% 0%, rgba(59, 130, 246, 0.15) 0%, transparent 40%),
-        radial-gradient(circle at 100% 100%, rgba(139, 92, 246, 0.1) 0%, transparent 40%);
+    background-image:
+        radial-gradient(circle at 8% 8%, rgba(34, 211, 238, 0.16) 0%, transparent 30%),
+        radial-gradient(circle at 90% 85%, rgba(57, 255, 154, 0.1) 0%, transparent 28%),
+        linear-gradient(rgba(77, 211, 224, 0.045) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(77, 211, 224, 0.045) 1px, transparent 1px);
+    background-size: auto, auto, 44px 44px, 44px 44px;
     background-attachment: fixed;
     min-height: 100vh;
+}
+
+body::before,
+body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+}
+
+body::before {
+    z-index: -1;
+    opacity: 0.5;
+    background-image: radial-gradient(circle, rgba(57, 255, 154, 0.32) 1px, transparent 1.5px);
+    background-size: 22px 22px;
+    mask-image: linear-gradient(135deg, black, transparent 72%);
+}
+
+body::after {
+    z-index: -1;
+    opacity: 0.2;
+    background: repeating-linear-gradient(0deg, transparent 0 5px, rgba(117, 255, 235, 0.06) 6px 7px);
+    animation: scanline 12s linear infinite;
 }
 
 /* === ANIMAÇÕES === */
@@ -36,6 +65,7 @@ body {
 @keyframes spinSlow { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 @keyframes spinReverse { from { transform: rotate(360deg) scale(0.8); } to { transform: rotate(0deg) scale(0.8); } }
 @keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes scanline { from { transform: translateY(-12px); } to { transform: translateY(12px); } }
 
 .text-gradient {
     background: var(--gradient-glow);
@@ -95,4 +125,8 @@ nav {
     .hero-text h1 { font-size: 2.2rem !important; }
     .bot-visual { transform: scale(0.5); }
     .login-container { padding: 30px 20px !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    body::after { animation: none; }
 }
